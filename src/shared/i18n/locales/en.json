@@ -25,5 +25,74 @@
       "invalidCredentials": "Invalid email or password.",
       "genericError": "Something went wrong. Please try again."
     }
+  },
+  "kanban": {
+    "title": "Content Ideas",
+    "loadError": "Failed to load ideas. Please refresh.",
+    "columns": {
+      "idea": "Ideas",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "empty": "Drop cards here"
+    },
+    "filters": {
+      "week": "This Week",
+      "month": "This Month",
+      "year": "This Year",
+      "all": "All Time",
+      "searchPlaceholder": "Search ideas…",
+      "embeddingSearch": "Semantic"
+    },
+    "card": {
+      "manual": "Manual",
+      "rss": "RSS",
+      "format": {
+        "text": "Text",
+        "markdown": "Markdown",
+        "html": "HTML"
+      }
+    },
+    "addIdea": {
+      "button": "Add Idea",
+      "title": "Add Content Idea",
+      "titleLabel": "Title (optional)",
+      "titlePlaceholder": "Give it a name…",
+      "contentLabel": "Content",
+      "contentPlaceholder": "Paste any text, markdown, or HTML…",
+      "contentRequired": "Content is required.",
+      "formatLabel": "Format",
+      "formatAuto": "Auto-detect",
+      "formatText": "Plain text",
+      "formatMarkdown": "Markdown",
+      "formatHtml": "HTML",
+      "submit": "Add Idea",
+      "submitting": "Adding…",
+      "cancel": "Cancel",
+      "error": "Failed to add idea. Please try again."
+    },
+    "rssFeeds": {
+      "title": "RSS Feeds",
+      "addFeed": "Add Feed",
+      "nameLabel": "Name",
+      "urlLabel": "Feed URL",
+      "invalidUrl": "Please enter a valid URL.",
+      "fetchNow": "Fetch now",
+      "remove": "Remove feed",
+      "lastFetched": "Last fetched",
+      "adding": "Adding…",
+      "addError": "Failed to add feed. URL may already be added.",
+      "empty": "No feeds yet. Add one below."
+    },
+    "detail": {
+      "back": "Back",
+      "accept": "Accept",
+      "reject": "Reject",
+      "moveToIdeas": "Move to Ideas",
+      "source": "Source",
+      "author": "Author",
+      "publishedAt": "Published",
+      "addedAt": "Added",
+      "notFound": "Idea not found."
+    }
   }
 }
