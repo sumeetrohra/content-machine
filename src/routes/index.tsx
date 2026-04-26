@@ -9,8 +9,16 @@ export const router = createBrowserRouter([
       {
         index: true,
         lazy: async () => {
-          const { HomePage } = await import('@/pages/home/HomePage');
-          return { Component: HomePage };
+          const { KanbanPage } = await import('@/pages/kanban/KanbanPage');
+          return { Component: KanbanPage };
+        },
+      },
+      {
+        path: 'idea/:id',
+        lazy: async () => {
+          const { IdeaDetailPage } =
+            await import('@/pages/kanban/IdeaDetailPage');
+          return { Component: IdeaDetailPage };
         },
       },
     ],

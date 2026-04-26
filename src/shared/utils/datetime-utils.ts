@@ -77,3 +77,11 @@ export const diff = (
 ): number => {
   return dayjs(dateA).diff(dayjs(dateB), unit);
 };
+
+export const startOf = (unit: 'week' | 'month' | 'year'): string => {
+  return dayjs().startOf(unit).toISOString();
+};
+
+export const endOf = (unit: 'week' | 'month' | 'year'): string => {
+  return dayjs().endOf(unit).toISOString();
+};

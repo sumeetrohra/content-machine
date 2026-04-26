@@ -15,6 +15,7 @@ export default tseslint.config(
       'test-results/**',
       'src/components/ui/**',
       'src/hooks/use-mobile.ts',
+      'supabase/**',
     ],
   },
   js.configs.recommended,
