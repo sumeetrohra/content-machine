@@ -10,4 +10,10 @@ export const env = {
   get SENTRY_DSN(): string {
     return import.meta.env.VITE_SENTRY_DSN ?? '';
   },
+  get SUPABASE_URL(): string {
+    return import.meta.env.VITE_SUPABASE_URL ?? '';
+  },
+  get SUPABASE_ANON_KEY(): string {
+    return import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
+  },
 };
