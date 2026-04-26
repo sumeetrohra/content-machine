@@ -1,0 +1,104 @@
+---
+description: Error handling patterns using typed errors, Sentry, and user-facing toast notifications.
+globs: "**/*.ts,**/*.tsx"
+---
+
+# Error Handling
+
+## Rules
+
+- **Always wrap async operations in try/catch.** Every `await` call or Promise chain must be inside a try/catch block. Never let async errors go unhandled.
+- **Use typed errors from `@/shared/utils/errors`.** The project defines custom error classes (e.g., `AppError`, `ApiError`, `ValidationError`). Always throw and catch these typed errors instead of generic `Error` objects.
+- **Report errors to Sentry via `@/modules/sentry`.** Import `captureAppError` for typed errors and `captureException` for unknown/raw errors. Never call Sentry SDK directly.
+- **Show user-facing errors via toast notifications.** Use the `toast` utility (from sonner or similar) to display error messages to users. Always use i18n translation keys for toast messages.
+- **Never swallow errors silently.** Every catch block must either report the error (Sentry), show a user-facing message (toast), or explicitly re-throw. An empty catch block is never acceptable.
+- **Type the error as `unknown` in catch blocks.** TypeScript catch blocks receive `unknown`. Narrow the type before accessing error properties.
+- **Use error boundaries for component-level errors.** Wrap route-level components and critical UI sections in React error boundaries that report to Sentry.
+
+## Examples
+
+### Good
+
+```typescript
+import { AppError, ApiError } from '@/shared/utils/errors';
+import { captureAppError, captureException } from '@/modules/sentry';
+import { toast } from 'sonner';
+
+/**
+ * Handles user deletion with proper error handling.
+ */
+const handleDeleteUser = async (userId: string) => {
+  try {
+    await deleteUser(userId);
+    toast.success(t('users.delete_success'));
+  } catch (error: unknown) {
+    if (error instanceof ApiError) {
+      captureAppError(error);
+      if (error.status === 403) {
+        toast.error(t('errors.forbidden'));
+      } else if (error.status === 404) {
+        toast.error(t('errors.not_found'));
+      } else {
+        toast.error(t('errors.generic'));
+      }
+    } else if (error instanceof AppError) {
+      captureAppError(error);
+      toast.error(t(`errors.${error.code}`));
+    } else {
+      captureException(error);
+      toast.error(t('errors.unexpected'));
+    }
+  }
+};
+
+// React Query error handling in onError
+const { mutate } = useDeleteUser({
+  onError: (error: unknown) => {
+    if (error instanceof ApiError) {
+      captureAppError(error);
+      toast.error(t('users.delete_failed'));
+    } else {
+      captureException(error);
+      toast.error(t('errors.unexpected'));
+    }
+  },
+});
+```
+
+### Bad
+
+```typescript
+// No try/catch on async
+const handleDelete = async (id: string) => {
+  await deleteUser(id); // Unhandled rejection if this fails
+};
+
+// Empty catch block (swallowing errors)
+try {
+  await fetchData();
+} catch (e) {
+  // silently ignored
+}
+
+// Using generic Error instead of typed errors
+throw new Error('Something went wrong');
+
+// Accessing error properties without type narrowing
+catch (error) {
+  console.error(error.message); // error is unknown, .message is unsafe
+}
+
+// Hardcoded English in toast
+catch (error) {
+  toast.error('Failed to delete user'); // Must use i18n
+}
+
+// console.error instead of Sentry
+catch (error) {
+  console.error('API failed:', error); // Use Sentry, not console
+}
+
+// Calling Sentry SDK directly
+import * as Sentry from '@sentry/react';
+Sentry.captureException(error); // Use @/modules/sentry wrapper
+```

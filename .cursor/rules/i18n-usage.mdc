@@ -1,0 +1,114 @@
+---
+description: Internationalization rules for all user-facing text using react-i18next.
+globs: "**/*.tsx,**/*.ts"
+---
+
+# i18n Usage
+
+## Rules
+
+- **All user-facing text must use `useTranslation()`.** Every string visible to users (labels, messages, placeholders, tooltips, error messages, toast notifications) must come from translation files via the `t()` function.
+- **Use flat 3-level dot notation for keys.** Translation keys follow the pattern: `<module>.<section>.<key>`. Examples: `auth.login.title`, `dashboard.stats.total_users`, `common.actions.save`.
+- **Module-based organization.** Translation files are organized by module. Each module has its own namespace or section in the translation JSON.
+- **Never hardcode English text in JSX.** Not even "OK", "Cancel", "Loading...", or single words. These must all go through i18n.
+- **Use interpolation for dynamic values.** Use `t('users.greeting', { name: user.name })` with `{{name}}` in the translation file. Never concatenate strings.
+- **Use pluralization support.** Use `t('items.count', { count })` with `_one`, `_other` suffixes in translation files.
+- **Keep keys descriptive but concise.** Keys should clearly indicate what the string is: `auth.login.submit_button`, not `auth.btn1`.
+- **Use the `common` namespace** for shared strings like "Save", "Cancel", "Delete", "Loading", "Error" that appear across modules.
+- **Translation files use JSON format** and are located in `src/locales/<lang>/`.
+
+## Examples
+
+### Good
+
+```typescript
+// Component with proper i18n
+import { useTranslation } from 'react-i18next';
+
+export const LoginForm = () => {
+  const { t } = useTranslation();
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('auth.login.title')}</CardTitle>
+        <CardDescription>{t('auth.login.subtitle')}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Input placeholder={t('auth.login.email_placeholder')} />
+        <Input placeholder={t('auth.login.password_placeholder')} />
+        <Button type="submit">{t('auth.login.submit_button')}</Button>
+        <p>{t('auth.login.forgot_password')}</p>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Interpolation
+t('users.greeting', { name: user.name })
+// Translation: "Welcome back, {{name}}"
+
+// Pluralization
+t('items.count', { count: items.length })
+// Translation: { "items": { "count_one": "{{count}} item", "count_other": "{{count}} items" } }
+
+// Toast with i18n
+toast.success(t('users.create_success'));
+toast.error(t('errors.generic'));
+
+// Zod error messages as i18n keys
+z.string().min(1, { message: 'validation.required' })
+```
+
+```json
+// src/locales/en/translation.json
+{
+  "common": {
+    "actions": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "edit": "Edit",
+      "confirm": "Confirm"
+    },
+    "status": {
+      "loading": "Loading...",
+      "error": "An error occurred",
+      "empty": "No results found"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "subtitle": "Enter your credentials to continue",
+      "email_placeholder": "Email address",
+      "password_placeholder": "Password",
+      "submit_button": "Sign In",
+      "forgot_password": "Forgot your password?"
+    }
+  }
+}
+```
+
+### Bad
+
+```typescript
+// Hardcoded English text
+<Button>Save</Button>
+<p>Loading...</p>
+<span>No results found</span>
+<Input placeholder="Enter your email" />
+toast.error('Failed to save changes');
+
+// String concatenation instead of interpolation
+<p>{t('users.greeting') + ' ' + user.name}</p>
+<p>{`Welcome, ${user.name}`}</p>
+
+// Deeply nested keys (more than 3 levels)
+t('modules.auth.pages.login.form.fields.email.placeholder')
+
+// Non-descriptive keys
+t('auth.str1')
+t('common.btn2')
+t('page.text')
+```

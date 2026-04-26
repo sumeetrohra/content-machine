@@ -1,0 +1,108 @@
+---
+description: File naming conventions, import ordering, and folder structure rules.
+globs: "**/*.ts,**/*.tsx"
+---
+
+# Project Structure
+
+## Rules
+
+- **File naming: kebab-case.** All files use kebab-case: `user-profile.tsx`, `auth.store.ts`, `date-utils.ts`. Never use PascalCase or camelCase for file names.
+- **File suffixes indicate purpose.** Use `.store.ts` for Zustand stores, `.test.ts`/`.test.tsx` for tests, `.schema.ts` for Zod schemas, `.types.ts` for type-only files, `.constants.ts` for constants, `.utils.ts` for utility functions.
+- **Import ordering** must follow this sequence, separated by blank lines:
+  1. External packages (`react`, `zustand`, `@tanstack/react-query`, etc.)
+  2. Aliased internal imports (`@/shared/...`, `@/modules/...`)
+  3. Relative imports (`./`, `../`)
+- **Maximum 1 level up for relative imports.** Never use `../../` or deeper. If you need to go more than one level up, use the `@/` alias instead.
+- **Folder structure by module.** Feature code lives in `src/modules/<module-name>/`. Shared code lives in `src/shared/`.
+- **Module folder structure:**
+  - `src/modules/<module>/components/` - React components
+  - `src/modules/<module>/hooks/` - Custom hooks
+  - `src/modules/<module>/stores/` - Zustand stores
+  - `src/modules/<module>/types/` - TypeScript types
+  - `src/modules/<module>/utils/` - Utility functions
+  - `src/modules/<module>/schemas/` - Zod schemas
+  - `src/modules/<module>/constants/` - Constants
+- **Shared folder structure:**
+  - `src/shared/components/ui/` - Design system components (shadcn)
+  - `src/shared/components/` - Shared non-UI components (layouts, error boundaries)
+  - `src/shared/hooks/` - Shared hooks
+  - `src/shared/utils/` - Shared utilities
+  - `src/shared/types/` - Shared types
+- **Index files for public API.** Each module should have an `index.ts` that re-exports its public API. Internal files should not be imported directly from outside the module.
+- **Co-locate tests.** Place test files next to the file they test: `user-profile.tsx` and `user-profile.test.tsx` in the same directory.
+
+## Examples
+
+### Good
+
+```typescript
+// Correct import ordering
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { z } from 'zod';
+
+import { Button } from '@/shared/components/ui/button';
+import { useAuthStore } from '@/modules/auth/stores/auth.store';
+import { captureAppError } from '@/modules/sentry';
+
+import { UserCard } from './user-card';
+import { formatUserName } from '../utils/format-user';
+```
+
+```
+// Correct file structure
+src/
+  modules/
+    auth/
+      components/
+        login-form.tsx
+        login-form.test.tsx
+      hooks/
+        use-auth.ts
+      stores/
+        auth.store.ts
+      types/
+        auth.types.ts
+      schemas/
+        login.schema.ts
+      index.ts
+    dashboard/
+      components/
+        dashboard-page.tsx
+        stats-card.tsx
+      index.ts
+  shared/
+    components/
+      ui/
+        button.tsx
+        input.tsx
+      layouts/
+        app-layout.tsx
+    hooks/
+      use-debounce.ts
+    utils/
+      errors.ts
+      datetime-utils.ts
+    types/
+      common.types.ts
+```
+
+### Bad
+
+```typescript
+// Wrong import ordering (mixed external and internal)
+import { Button } from '@/shared/components/ui/button';
+import { useState } from 'react';
+import { UserCard } from './user-card';
+import { z } from 'zod';
+
+// Too many levels of relative imports
+import { something } from '../../../shared/utils/helpers';
+import { another } from '../../../../modules/auth/types';
+
+// Wrong file naming
+UserProfile.tsx        // PascalCase - wrong
+userProfile.tsx        // camelCase - wrong
+user_profile.tsx       // snake_case - wrong
+```

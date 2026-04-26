@@ -1,0 +1,83 @@
+---
+description: Conventions for using React Query (TanStack Query) for server state management.
+globs: "**/*.ts,**/*.tsx"
+---
+
+# React Query Usage
+
+## Rules
+
+- **React Query is for server state only.** Use it exclusively for data that originates from the server (API responses). Client-side UI state belongs in Zustand stores.
+- **Prefer `invalidateQueries` over `setQueryData`.** After mutations, invalidate the relevant queries to trigger a refetch. This ensures data consistency with the server. Do not manually update the cache with `setQueryData`.
+- **Never use `setQueryData` to update cache after mutations.** It leads to stale data when multiple cache entries need updating, is error-prone, and bypasses server-side validation. Always invalidate and let React Query refetch.
+- **Use generated API hooks.** The project uses auto-generated React Query hooks from the API schema. Use these generated hooks directly; do not write custom `useQuery`/`useMutation` calls for existing endpoints.
+- **Handle all three states.** Every query consumer must handle `isLoading`, `isError`, and success states. Never assume data is available.
+- **Use `enabled` option for conditional fetching.** When a query depends on a value that may be undefined, use the `enabled` option instead of early returns or conditional hook calls.
+- **Set appropriate `staleTime` and `gcTime`.** Static data (enums, configs) should have longer stale times. Frequently changing data should use shorter intervals.
+- **Use `select` for data transformation.** Transform query results using the `select` option rather than transforming in the component body.
+
+## Examples
+
+### Good
+
+```typescript
+// Using generated hooks
+const { data: users, isLoading, isError, error } = useGetUsers();
+
+// Mutation with invalidation
+const { mutate: createUser } = useCreateUser({
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['users'] });
+    toast.success(t('users.created'));
+  },
+  onError: (error) => {
+    captureAppError(error);
+    toast.error(t('users.create_failed'));
+  },
+});
+
+// Conditional fetching with enabled
+const { data: profile } = useGetUserProfile(userId, {
+  enabled: !!userId,
+});
+
+// Data transformation with select
+const { data: activeUsers } = useGetUsers({
+  select: (data) => data.filter((user) => user.isActive),
+});
+
+// Handling all states
+if (isLoading) return <Skeleton />;
+if (isError) return <ErrorDisplay error={error} />;
+return <UserList users={data} />;
+```
+
+### Bad
+
+```typescript
+// Manual setQueryData after mutation (stale data risk)
+const { mutate } = useCreateUser({
+  onSuccess: (newUser) => {
+    queryClient.setQueryData(['users'], (old) => [...old, newUser]); // Wrong
+  },
+});
+
+// Not handling loading/error states
+const { data: users } = useGetUsers();
+return <UserList users={users!} />; // Unsafe non-null assertion
+
+// Custom useQuery when a generated hook exists
+const { data } = useQuery({
+  queryKey: ['users'],
+  queryFn: () => fetch('/api/users').then((r) => r.json()), // Use generated hook
+});
+
+// Conditional hook call (violates rules of hooks)
+if (userId) {
+  const { data } = useGetUserProfile(userId); // Hooks cannot be conditional
+}
+
+// Transforming data in component body
+const { data: users } = useGetUsers();
+const activeUsers = users?.filter((u) => u.isActive); // Use select instead
+```

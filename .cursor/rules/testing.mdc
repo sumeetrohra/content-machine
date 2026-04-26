@@ -1,0 +1,116 @@
+---
+description: Testing conventions using Vitest and React Testing Library.
+globs: "**/*.test.ts,**/*.test.tsx"
+---
+
+# Testing Conventions
+
+## Rules
+
+- **Use Vitest as the test runner** and React Testing Library (RTL) for component tests. Never use Jest or Enzyme.
+- **Use `renderWithRouter`** for all component renders that need routing context. This helper wraps components with the necessary providers (router, query client, i18n).
+- **No CSS class assertions.** Never assert on `className`, inline styles, or CSS properties. Test behavior and DOM structure, not visual implementation.
+- **Mock API calls with `nock`.** Use nock to intercept HTTP requests in tests. Never use `jest.fn()` or `vi.fn()` to mock API modules directly; mock at the network level.
+- **Test user behavior, not implementation.** Use RTL queries like `getByRole`, `getByText`, `getByLabelText`. Avoid `getByTestId` unless no semantic query works.
+- **Prefer `userEvent` over `fireEvent`.** `@testing-library/user-event` simulates real user interactions more accurately.
+- **Each test file mirrors its source file.** `user-profile.tsx` has `user-profile.test.tsx` in the same directory.
+- **Use `describe` blocks** to group related tests. Use descriptive test names that explain the expected behavior.
+- **Always clean up.** nock interceptors and any side effects should be cleaned up in `afterEach`.
+- **Avoid snapshot tests.** They are brittle and provide little value. Test specific behavior instead.
+
+## Examples
+
+### Good
+
+```typescript
+import { describe, it, expect, afterEach } from 'vitest';
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import nock from 'nock';
+
+import { renderWithRouter } from '@/test-utils/render-with-router';
+import { UserProfile } from './user-profile';
+
+describe('UserProfile', () => {
+  afterEach(() => {
+    nock.cleanAll();
+  });
+
+  it('displays user name after loading', async () => {
+    nock('http://localhost')
+      .get('/api/users/1')
+      .reply(200, { id: '1', name: 'Alice Johnson', email: 'alice@example.com' });
+
+    renderWithRouter(<UserProfile userId="1" />);
+
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText('Alice Johnson')).toBeInTheDocument();
+    });
+  });
+
+  it('shows error message when fetch fails', async () => {
+    nock('http://localhost')
+      .get('/api/users/1')
+      .reply(500);
+
+    renderWithRouter(<UserProfile userId="1" />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+  });
+
+  it('calls delete API when delete button is clicked', async () => {
+    const user = userEvent.setup();
+    const deleteScope = nock('http://localhost')
+      .delete('/api/users/1')
+      .reply(204);
+
+    nock('http://localhost')
+      .get('/api/users/1')
+      .reply(200, { id: '1', name: 'Alice', email: 'alice@example.com' });
+
+    renderWithRouter(<UserProfile userId="1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Alice')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /delete/i }));
+    await user.click(screen.getByRole('button', { name: /confirm/i }));
+
+    await waitFor(() => {
+      expect(deleteScope.isDone()).toBe(true);
+    });
+  });
+});
+```
+
+### Bad
+
+```typescript
+// Asserting on CSS classes
+expect(button).toHaveClass('bg-primary text-white');
+expect(element).toHaveStyle({ color: 'red' });
+
+// Using fireEvent instead of userEvent
+fireEvent.click(screen.getByRole('button'));
+
+// Mocking API modules instead of network
+vi.mock('@/api/users', () => ({
+  getUser: vi.fn().mockResolvedValue({ name: 'Alice' }),
+}));
+
+// Using getByTestId when semantic queries work
+<div data-testid="user-name">{user.name}</div>
+expect(screen.getByTestId('user-name')).toHaveTextContent('Alice');
+// Should be: expect(screen.getByText('Alice')).toBeInTheDocument()
+
+// Snapshot testing
+expect(container).toMatchSnapshot();
+
+// Rendering without providers
+render(<UserProfile userId="1" />); // Missing router/query/i18n providers
+```

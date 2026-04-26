@@ -1,0 +1,94 @@
+---
+description: Pragmatic application of SOLID principles with simplicity-first approach.
+globs: "**/*.ts,**/*.tsx"
+---
+
+# SOLID Principles (Pragmatic)
+
+## Rules
+
+- **Simplicity first.** Always prefer the simplest solution that works. Do not over-engineer or add abstractions "just in case." YAGNI (You Aren't Gonna Need It) trumps theoretical purity.
+- **Apply SOLID pragmatically, not dogmatically.** SOLID principles are guidelines, not laws. Use them when they reduce complexity; skip them when they add unnecessary indirection.
+- **Single Responsibility:** A component/function/module should do one thing well. If a component handles both data fetching and presentation, split it. But do not split a 20-line component into 5 files.
+- **Open/Closed:** Prefer composition over modification. Use props, children, and render props to extend component behavior without changing the component source. But do not create abstract base components for hypothetical future needs.
+- **Liskov Substitution:** Components that accept the same props interface should be interchangeable. Variant components (e.g., `PrimaryButton`, `DangerButton`) should all satisfy the base `Button` interface.
+- **Interface Segregation:** Do not force components to accept props they do not use. Split large prop interfaces into focused ones. But only if the component is actually used in different contexts that need different subsets.
+- **Dependency Inversion:** Depend on abstractions (types/interfaces) not concretions. But only introduce an interface when you have 2+ implementations or need to mock in tests.
+- **Router/factory patterns only for 5+ component types.** Do not create a component registry, factory, or strategy pattern until you have at least 5 variants. For 2-4 variants, a simple switch/if-else or union type is clearer.
+- **Extract shared logic into hooks or utils** only when it is used in 3+ places. Premature extraction creates indirection without benefit.
+- **Inline small helpers.** A 3-line utility function used in one file does not need its own module.
+
+## Examples
+
+### Good
+
+```typescript
+// Simple and direct for 2-3 variants
+const StatusBadge = ({ status }: TStatusBadgeProps) => {
+  const variants: Record<EStatus, string> = {
+    [EStatus.ACTIVE]: 'default',
+    [EStatus.INACTIVE]: 'secondary',
+    [EStatus.PENDING]: 'outline',
+  };
+
+  return <Badge variant={variants[status]}>{status}</Badge>;
+};
+
+// Composition via props - extending without modifying
+const DataTable = <TData,>({
+  columns,
+  data,
+  renderEmpty,
+  renderToolbar,
+}: TDataTableProps<TData>) => (
+  <div>
+    {renderToolbar?.()}
+    {data.length === 0 ? renderEmpty?.() : (
+      <Table>
+        {/* table rendering */}
+      </Table>
+    )}
+  </div>
+);
+
+// Extract hook only when used in 3+ places
+// Used in UserList, ProductList, and OrderList
+const usePagination = (initialPage = 1, pageSize = 20) => {
+  const [page, setPage] = useState(initialPage);
+  return { page, pageSize, setPage, offset: (page - 1) * pageSize };
+};
+```
+
+### Bad
+
+```typescript
+// Over-engineered factory for only 2 types
+interface IComponentFactory {
+  create(type: string): React.ReactNode;
+}
+class ComponentFactory implements IComponentFactory {
+  private registry = new Map<string, React.ComponentType>();
+  register(type: string, component: React.ComponentType) { ... }
+  create(type: string) { ... }
+}
+// For 2 components, just use: type === 'a' ? <A /> : <B />
+
+// Premature abstraction - interface with only one implementation
+interface IUserRepository {
+  getUser(id: string): Promise<TUser>;
+  listUsers(): Promise<TUser[]>;
+}
+class ApiUserRepository implements IUserRepository { ... }
+// If there is only one implementation, skip the interface
+
+// Extracting a hook used in only one place
+const useFormattedDate = (date: string) => formatDate(date);
+// Just call formatDate directly
+
+// Splitting a simple component into too many files
+// user-badge.types.ts (2 lines)
+// user-badge.utils.ts (3 lines)
+// user-badge.constants.ts (1 line)
+// user-badge.tsx (10 lines)
+// Just put it all in user-badge.tsx
+```

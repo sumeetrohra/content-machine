@@ -1,0 +1,94 @@
+---
+description: Prohibits CustomEvent and custom event listeners in favor of React-native patterns.
+globs: "**/*.ts,**/*.tsx"
+---
+
+# Avoid Custom Events
+
+## Rules
+
+- **Never use `CustomEvent` or `new Event()`.** The DOM custom events API bypasses React's data flow and makes state changes invisible to React's rendering system.
+- **Never use `addEventListener` / `removeEventListener` for custom application events.** These create hidden communication channels that are hard to trace, test, and debug.
+- **Never use `window.dispatchEvent` for cross-component communication.** This is a global side effect that breaks component isolation and makes data flow untraceable.
+- **Use callback props** for parent-child communication. Pass functions as props that children call to notify parents.
+- **Use Zustand stores** for cross-component communication that does not involve a parent-child relationship. Stores provide a traceable, debuggable communication channel.
+- **Use React Query's `invalidateQueries`** for triggering data refreshes across components. This is the correct way to signal that server data has changed.
+- **The only acceptable `addEventListener` use** is for native browser events (resize, scroll, keyboard shortcuts, online/offline) inside custom hooks with proper cleanup.
+
+## Examples
+
+### Good
+
+```typescript
+// Callback props for parent-child communication
+type TChildProps = {
+  onItemSelected: (itemId: string) => void;
+  onClose: () => void;
+};
+
+const Child = ({ onItemSelected, onClose }: TChildProps) => (
+  <Button onClick={() => onItemSelected('123')}>{t('common.actions.select')}</Button>
+);
+
+const Parent = () => {
+  const handleItemSelected = (itemId: string) => {
+    // handle selection
+  };
+  return <Child onItemSelected={handleItemSelected} onClose={handleClose} />;
+};
+
+// Zustand for cross-component communication
+const useNotificationStore = create<TNotificationState>((set) => ({
+  notifications: [],
+  addNotification: (notification: TNotification) =>
+    set((state) => ({
+      notifications: [...state.notifications, notification],
+    }), false, 'notifications/add'),
+}));
+
+// Component A triggers
+const addNotification = useNotificationStore((s) => s.addNotification);
+addNotification({ type: 'success', message: t('users.created') });
+
+// Component B reacts
+const notifications = useNotificationStore((s) => s.notifications);
+
+// React Query for data refresh signals
+const queryClient = useQueryClient();
+queryClient.invalidateQueries({ queryKey: ['users'] });
+
+// Acceptable: native browser events in hooks
+const useWindowResize = (callback: (size: TWindowSize) => void) => {
+  useEffect(() => {
+    const handler = () => callback({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, [callback]);
+};
+```
+
+### Bad
+
+```typescript
+// Custom DOM events for communication
+const event = new CustomEvent('userCreated', { detail: { userId: '123' } });
+window.dispatchEvent(event);
+
+// Listening for custom events
+useEffect(() => {
+  const handler = (e: CustomEvent) => {
+    setUser(e.detail);
+  };
+  window.addEventListener('userCreated', handler);
+  return () => window.removeEventListener('userCreated', handler);
+}, []);
+
+// Event bus pattern
+const eventBus = new EventTarget();
+eventBus.addEventListener('notify', handleNotify);
+eventBus.dispatchEvent(new CustomEvent('notify', { detail: message }));
+
+// Document-level custom events
+document.dispatchEvent(new Event('modalClosed'));
+document.addEventListener('modalClosed', handleModalClose);
+```

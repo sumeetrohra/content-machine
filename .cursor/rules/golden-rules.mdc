@@ -1,0 +1,80 @@
+---
+description: Core rules that apply to all code in the project. These are non-negotiable standards.
+globs: "**/*.ts,**/*.tsx"
+---
+
+# Golden Rules
+
+These rules are the highest priority and must never be violated.
+
+## Rules
+
+- **No useEffect for data fetching.** Use dedicated async hooks/services for server data and keep fetching logic outside component effects.
+- **No React Context for global state management.** Use Zustand stores for all client-side global state. Context causes unnecessary re-renders across the tree and does not scale.
+- **No `any` type.** Every variable, parameter, return type, and generic must be properly typed. Use `unknown` if the type is truly not known, then narrow it. If a third-party library lacks types, create a declaration file.
+- **No hardcoded colors.** Never use hex values (`#fff`), RGB (`rgb()`), HSL (`hsl()`), or raw Tailwind color classes (`text-red-500`). Always use semantic design tokens (`text-foreground`, `bg-primary`, `border-destructive`).
+- **Always use the design system.** Use shadcn/ui components instead of raw HTML elements when an equivalent exists. Never build custom buttons, inputs, dialogs, etc. from scratch.
+- **All user-facing strings must go through i18n.** Use the `useTranslation()` hook and translation keys for every string visible to users. No hardcoded English text in JSX.
+- **No console.log in committed code.** Remove all `console.log`, `console.warn`, `console.error`, and `console.debug` statements before committing. Use the Sentry module for error reporting and structured logging.
+- **No default exports.** Always use named exports for better refactoring support and explicit imports.
+
+## Examples
+
+### Good
+
+```typescript
+// Data fetching via dedicated hook/service
+const { data: users, isLoading } = useUsersData();
+
+// State management with Zustand
+const count = useCounterStore((state) => state.count);
+
+// Proper typing
+function processItems(items: ReadonlyArray<Item>): ProcessedItem[] {
+  return items.map(transformItem);
+}
+
+// Semantic color tokens
+<div className="bg-background text-foreground border-border" />
+
+// Design system components
+<Button variant="destructive" size="sm">Delete</Button>
+
+// i18n strings
+const { t } = useTranslation();
+<p>{t('dashboard.welcome_message')}</p>
+
+// Error reporting via Sentry
+import { captureAppError } from '@/modules/sentry';
+captureAppError(new AppError('FETCH_FAILED', 'Could not load users'));
+```
+
+### Bad
+
+```typescript
+// useEffect for data fetching
+useEffect(() => {
+  fetch('/api/users').then(res => res.json()).then(setUsers);
+}, []);
+
+// Context for state management
+const ThemeContext = createContext<Theme>('light');
+
+// Using any
+function processData(data: any) { return data.items; }
+
+// Hardcoded colors
+<div className="bg-[#1a1a2e] text-red-500" style={{ color: '#fff' }} />
+
+// Raw HTML instead of design system
+<button className="px-4 py-2 rounded bg-blue-500">Click</button>
+
+// Hardcoded English text
+<p>Welcome to the dashboard</p>
+
+// console.log left in code
+console.log('user data:', userData);
+
+// Default export
+export default function MyComponent() {}
+```

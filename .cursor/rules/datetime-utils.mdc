@@ -1,0 +1,84 @@
+---
+description: Rules for date and time handling via the project's datetime-utils module.
+globs: "**/*.ts,**/*.tsx"
+---
+
+# Date/Time Utilities
+
+## Rules
+
+- **All date/time operations must use `@/shared/utils/datetime-utils`.** This module wraps the underlying date library and provides consistent formatting, parsing, and manipulation functions.
+- **Never use `new Date()` directly.** Always use the datetime-utils functions for creating dates. Direct `Date` construction is error-prone with timezone handling and inconsistent across browsers.
+- **Never import dayjs, moment, or date-fns directly.** The datetime-utils module is the only sanctioned entry point. If you need a date operation not available in datetime-utils, add it there.
+- **Use the provided formatters** for displaying dates to users. These formatters respect the user's locale and timezone settings.
+- **Store dates as ISO 8601 strings** when serializing (API communication, local storage). Never store formatted display strings or timestamps.
+- **Always handle timezones explicitly.** Use the timezone-aware functions from datetime-utils rather than assuming local time.
+
+## Examples
+
+### Good
+
+```typescript
+import {
+  formatDate,
+  formatDateTime,
+  formatRelative,
+  parseISO,
+  now,
+  addDays,
+  isBefore,
+  isAfter,
+  diffInDays,
+  startOfDay,
+  endOfDay,
+} from '@/shared/utils/datetime-utils';
+
+// Get current date/time
+const currentDate = now();
+
+// Format for display
+const displayDate = formatDate(user.createdAt);           // "Jan 15, 2025"
+const displayDateTime = formatDateTime(event.startTime);  // "Jan 15, 2025 2:30 PM"
+const relative = formatRelative(comment.createdAt);        // "3 hours ago"
+
+// Date manipulation
+const deadline = addDays(now(), 7);
+const dayStart = startOfDay(selectedDate);
+const dayEnd = endOfDay(selectedDate);
+
+// Comparisons
+if (isBefore(now(), deadline)) {
+  // still within deadline
+}
+const daysRemaining = diffInDays(deadline, now());
+
+// Parsing API dates
+const parsedDate = parseISO(apiResponse.createdAt);
+```
+
+### Bad
+
+```typescript
+// Direct Date construction
+const now = new Date();
+const date = new Date('2025-01-15');
+const timestamp = Date.now();
+
+// Importing date libraries directly
+import dayjs from 'dayjs';
+import { format } from 'date-fns';
+import moment from 'moment';
+
+const formatted = dayjs(date).format('YYYY-MM-DD');
+const display = format(new Date(), 'PPP');
+const relative = moment(date).fromNow();
+
+// Manual date formatting
+const dateStr = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+
+// Storing formatted strings
+localStorage.setItem('lastVisit', 'January 15, 2025'); // Store ISO string instead
+
+// Timezone-unaware comparisons
+if (date1.getTime() > date2.getTime()) { ... }
+```

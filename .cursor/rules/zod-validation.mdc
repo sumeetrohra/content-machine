@@ -1,0 +1,131 @@
+---
+description: Zod schema validation patterns with React Hook Form integration.
+globs: "**/*.schema.ts,**/*.tsx"
+---
+
+# Zod Validation
+
+## Rules
+
+- **Use Zod for all form validation.** Every form must have a corresponding Zod schema that defines validation rules.
+- **Use `zodResolver` from `@hookform/resolvers/zod`** to connect Zod schemas to React Hook Form.
+- **Infer TypeScript types from Zod schemas.** Use `z.infer<typeof schema>` to derive form data types. Never manually define a type that duplicates a Zod schema's shape.
+- **Schema files use `.schema.ts` suffix.** Place schema files alongside the components that use them or in a `schemas/` folder within the module.
+- **Define reusable field schemas.** Common validations (email, phone, password) should be defined once in shared schemas and composed into form-specific schemas.
+- **Always provide user-friendly error messages** using the `message` parameter in Zod validators. Use i18n keys for these messages.
+- **Validate API response data** with Zod schemas when the response shape is not guaranteed by code generation.
+- **Use `z.coerce` for form inputs** that return strings but need other types (numbers, dates).
+
+## Examples
+
+### Good
+
+```typescript
+// login.schema.ts
+import { z } from 'zod';
+
+export const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, { message: 'validation.email_required' })
+    .email({ message: 'validation.email_invalid' }),
+  password: z
+    .string()
+    .min(8, { message: 'validation.password_min_length' })
+    .max(128, { message: 'validation.password_max_length' }),
+  rememberMe: z.boolean().default(false),
+});
+
+// Infer type from schema
+export type TLoginFormData = z.infer<typeof loginSchema>;
+
+// login-form.tsx
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { loginSchema, type TLoginFormData } from './login.schema';
+
+export const LoginForm = () => {
+  const { t } = useTranslation();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<TLoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      rememberMe: false,
+    },
+  });
+
+  const onSubmit = (data: TLoginFormData) => {
+    loginMutation.mutate(data);
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <Input {...register('email')} />
+      {errors.email && <p className="text-destructive">{t(errors.email.message!)}</p>}
+      <Input type="password" {...register('password')} />
+      {errors.password && <p className="text-destructive">{t(errors.password.message!)}</p>}
+      <Button type="submit">{t('auth.login')}</Button>
+    </form>
+  );
+};
+
+// Reusable field schemas
+export const emailSchema = z
+  .string()
+  .min(1, { message: 'validation.email_required' })
+  .email({ message: 'validation.email_invalid' });
+
+export const phoneSchema = z
+  .string()
+  .regex(/^\+?[1-9]\d{1,14}$/, { message: 'validation.phone_invalid' });
+
+// Composed schema
+export const contactSchema = z.object({
+  email: emailSchema,
+  phone: phoneSchema.optional(),
+});
+
+// Coercing number from form input
+const settingsSchema = z.object({
+  maxRetries: z.coerce.number().min(1).max(10),
+  timeout: z.coerce.number().positive(),
+});
+```
+
+### Bad
+
+```typescript
+// Manually defining types that duplicate schema shape
+type TLoginData = {
+  email: string;
+  password: string;
+};
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+// Should use: type TLoginData = z.infer<typeof loginSchema>
+
+// No error messages in schema
+const schema = z.object({
+  email: z.string().email(),     // No custom message
+  age: z.number().min(18),       // No custom message
+});
+
+// Manual validation instead of zodResolver
+const onSubmit = (data: FormData) => {
+  if (!data.email.includes('@')) {
+    setError('Invalid email');    // Use Zod + zodResolver
+  }
+};
+
+// useForm without zodResolver
+const { register } = useForm<TFormData>();
+// Should be: useForm<TFormData>({ resolver: zodResolver(schema) })
+```

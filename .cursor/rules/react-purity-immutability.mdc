@@ -1,0 +1,120 @@
+---
+description: Rules enforcing component purity, idempotency, and immutable data patterns.
+globs: "**/*.tsx,**/*.ts"
+---
+
+# React Purity and Immutability
+
+## Rules
+
+- **Components must be pure functions.** Given the same props and state, a component must always return the same JSX. No randomness, no reading mutable external values, no side effects during render.
+- **Components must be idempotent.** Rendering a component multiple times with the same inputs must produce the same output. React may re-render components at any time (especially in StrictMode and with React Compiler).
+- **Never mutate props.** Props are read-only. Never modify a prop value, push to a prop array, or change a property on a prop object.
+- **Never mutate state directly.** Always use the state setter function with a new value. Never use `state.push()`, `state.splice()`, `state[key] = value`, `delete state[key]`, or any other in-place mutation.
+- **Always create new objects when updating state.** Use spread syntax (`{ ...obj, key: newValue }`), `Object.assign({}, ...)`, or immutable helper functions.
+- **Always create new arrays when updating state.** Use `.map()`, `.filter()`, `.concat()`, spread (`[...arr, newItem]`), or `.slice()`. Never use `.push()`, `.pop()`, `.splice()`, `.sort()` (without copying first), or `.reverse()` on state arrays.
+- **Never mutate JSX element values or keys after creation.** JSX elements and their props are frozen after render. Do not store JSX in a variable and later mutate its properties.
+- **Do not use `Object.freeze()` as a substitute for immutable patterns.** Frozen objects throw in strict mode on mutation but do not make data structurally immutable. Use proper immutable update patterns instead.
+- **Zustand stores with nested state should use immer middleware** to enable mutable-syntax updates that produce immutable results.
+
+## Examples
+
+### Good
+
+```typescript
+// Pure component - same props always produce same output
+export const UserBadge = ({ name, role }: TUserBadgeProps) => (
+  <Badge variant={role === EUserRole.ADMIN ? 'default' : 'secondary'}>
+    {name}
+  </Badge>
+);
+
+// Immutable state updates - objects
+const [user, setUser] = useState<TUser>(initialUser);
+
+const updateName = (newName: string) => {
+  setUser((prev) => ({ ...prev, name: newName }));
+};
+
+const updateAddress = (field: string, value: string) => {
+  setUser((prev) => ({
+    ...prev,
+    address: { ...prev.address, [field]: value },
+  }));
+};
+
+// Immutable state updates - arrays
+const [items, setItems] = useState<TItem[]>([]);
+
+// Add item
+setItems((prev) => [...prev, newItem]);
+
+// Remove item
+setItems((prev) => prev.filter((item) => item.id !== targetId));
+
+// Update item in array
+setItems((prev) =>
+  prev.map((item) =>
+    item.id === targetId ? { ...item, name: newName } : item
+  )
+);
+
+// Sort without mutating (copy first)
+const sortedItems = [...items].sort((a, b) => a.name.localeCompare(b.name));
+
+// Zustand with immer for nested state
+const useFormStore = create<TFormState>()(
+  immer((set) => ({
+    form: { fields: {}, errors: {} },
+    setField: (key: string, value: string) =>
+      set((state) => {
+        state.form.fields[key] = value; // Safe with immer
+      }),
+  }))
+);
+```
+
+### Bad
+
+```typescript
+// Mutating props
+const UserList = ({ users }: TUserListProps) => {
+  users.sort((a, b) => a.name.localeCompare(b.name)); // Mutates prop array
+  users.push(newUser); // Mutates prop array
+  return <div>{users.map(renderUser)}</div>;
+};
+
+// Mutating state directly
+const [items, setItems] = useState<TItem[]>([]);
+
+// Direct mutation - React won't detect the change
+items.push(newItem);
+setItems(items); // Same reference, React may skip re-render
+
+items.splice(index, 1); // Direct mutation
+items[0].name = 'New Name'; // Nested mutation
+
+// Mutating state object
+const [user, setUser] = useState<TUser>(initialUser);
+user.name = 'New Name'; // Direct mutation
+setUser(user); // Same reference
+
+// Side effects during render (impure)
+const Counter = ({ count }: TCounterProps) => {
+  // These all make the component impure:
+  document.title = `Count: ${count}`;
+  localStorage.setItem('count', String(count));
+  analyticsTrack('render', { count });
+
+  return <span>{count}</span>;
+};
+
+// Non-idempotent component
+const RandomGreeting = () => {
+  const greeting = Math.random() > 0.5 ? 'Hello' : 'Hi'; // Non-deterministic
+  return <span>{greeting}</span>;
+};
+
+// Sorting in place
+const sorted = items.sort((a, b) => a.order - b.order); // Mutates original
+```

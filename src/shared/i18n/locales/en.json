@@ -1,0 +1,16 @@
+{
+  "app": {
+    "title": "content-machine",
+    "description": "Welcome to content-machine"
+  },
+  "home": {
+    "title": "Welcome",
+    "subtitle": "Get started by editing your pages",
+    "description": "This project was scaffolded with react-cli, featuring React, TypeScript, Vite, and best practices baked in."
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  }
+}

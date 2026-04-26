@@ -1,0 +1,80 @@
+---
+description: Rules for using the design system components, icons, and tokens consistently.
+globs: "**/*.tsx"
+---
+
+# Design System Usage
+
+## Rules
+
+- **Use shadcn/ui components** for all standard UI elements. Never create custom versions of Button, Input, Select, Dialog, Sheet, Popover, Tooltip, Card, Table, Tabs, Badge, Alert, Skeleton, or any other component that exists in the design system.
+- **Use Lucide icons** exclusively. Import from `lucide-react`. Never use other icon libraries, inline SVGs, or emoji as icons.
+- **Use semantic design tokens** for all colors, spacing, and typography. Reference the theme tokens defined in your CSS variables. Never use arbitrary Tailwind values for colors.
+- **No raw HTML when an equivalent component exists.** Use `<Button>` not `<button>`, `<Input>` not `<input>`, `<Card>` not `<div className="border rounded...">`, etc.
+- **Compose components using the design system primitives.** When building complex UI, compose from existing design system components rather than building from raw HTML elements.
+- **Follow the variant API.** Use the `variant` and `size` props provided by design system components rather than overriding styles with custom classes.
+- **Import components from `@/shared/components/ui/`.** This is the canonical import path for all design system components.
+
+## Examples
+
+### Good
+
+```typescript
+import { Button } from '@/shared/components/ui/button';
+import { Input } from '@/shared/components/ui/input';
+import { Card, CardHeader, CardTitle, CardContent } from '@/shared/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/shared/components/ui/dialog';
+import { Badge } from '@/shared/components/ui/badge';
+import { Skeleton } from '@/shared/components/ui/skeleton';
+import { Trash2, Plus, Search } from 'lucide-react';
+
+export const UserCard = ({ user }: TUserCardProps) => {
+  const { t } = useTranslation();
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{user.name}</CardTitle>
+        <Badge variant={user.isActive ? 'default' : 'secondary'}>
+          {user.isActive ? t('common.active') : t('common.inactive')}
+        </Badge>
+      </CardHeader>
+      <CardContent>
+        <Button variant="destructive" size="sm">
+          <Trash2 className="mr-2 h-4 w-4" />
+          {t('common.delete')}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
+```
+
+### Bad
+
+```typescript
+// Raw HTML instead of design system
+<button className="px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600">
+  Submit
+</button>
+
+// Custom input instead of design system Input
+<input
+  className="border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500"
+  type="text"
+/>
+
+// Using a different icon library
+import { FaTrash } from 'react-icons/fa';
+
+// Inline SVG
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">...</svg>
+
+// Overriding design system styles instead of using variants
+<Button className="bg-red-500 hover:bg-red-600 text-white">Delete</Button>
+
+// Building a card from scratch
+<div className="border rounded-lg p-4 shadow-sm">
+  <h3 className="text-lg font-semibold">{user.name}</h3>
+</div>
+```

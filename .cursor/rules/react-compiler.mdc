@@ -1,0 +1,103 @@
+---
+description: Rules for working with React Compiler which provides automatic memoization.
+globs: "**/*.tsx,**/*.ts"
+---
+
+# React Compiler
+
+## Rules
+
+- **React Compiler is enabled in this project.** It automatically memoizes components, hooks, and expressions. You do not need to manually optimize re-renders in most cases.
+- **Do not use `React.memo()`.** The compiler handles component memoization automatically. Wrapping components in `React.memo()` is redundant and adds unnecessary code.
+- **Do not use `useMemo()`.** The compiler detects expensive computations and memoizes them automatically. Manual `useMemo()` calls are unnecessary.
+- **Do not use `useCallback()`.** The compiler automatically memoizes callback functions passed as props. Manual `useCallback()` calls are unnecessary.
+- **Components must be pure.** The compiler assumes components are pure functions of their props and state. A component must return the same JSX for the same props and state. Side effects must live in `useEffect` or event handlers, not in the render body.
+- **Use `"use no memo"` directive sparingly.** If the compiler causes issues with a specific component or hook (rare), you can add `"use no memo"` at the top of the function to opt it out. This should be a last resort with a comment explaining why.
+- **Do not read or mutate refs during render.** Ref reads/writes must happen in effects or event handlers, never in the component body. The compiler cannot optimize code that reads mutable refs during render.
+- **Follow the Rules of React strictly.** The compiler enforces purity, idempotency, and the rules of hooks more strictly than runtime React. Violations may cause incorrect memoization.
+
+## Examples
+
+### Good
+
+```typescript
+// Simple component - compiler handles memoization
+export const UserCard = ({ user, onSelect }: TUserCardProps) => {
+  const { t } = useTranslation();
+
+  // Compiler auto-memoizes this computation
+  const fullName = `${user.firstName} ${user.lastName}`;
+
+  // Compiler auto-memoizes this callback
+  const handleClick = () => {
+    onSelect(user.id);
+  };
+
+  return (
+    <Card onClick={handleClick}>
+      <CardTitle>{fullName}</CardTitle>
+      <Badge>{t(`roles.${user.role}`)}</Badge>
+    </Card>
+  );
+};
+
+// Derived data - compiler handles memoization
+export const UserList = ({ users, filter }: TUserListProps) => {
+  // Compiler auto-memoizes this filter operation
+  const filteredUsers = users.filter((u) => u.role === filter);
+
+  return (
+    <div>
+      {filteredUsers.map((user) => (
+        <UserCard key={user.id} user={user} />
+      ))}
+    </div>
+  );
+};
+
+// Opting out (rare, with explanation)
+export const AnimationComponent = () => {
+  "use no memo"; // Compiler conflicts with the animation library's mutable state
+
+  // ... component code
+};
+```
+
+### Bad
+
+```typescript
+// Unnecessary React.memo
+export const UserCard = React.memo(({ user }: TUserCardProps) => {
+  return <Card>{user.name}</Card>;
+});
+
+// Unnecessary useMemo
+const filteredUsers = useMemo(
+  () => users.filter((u) => u.role === filter),
+  [users, filter]
+);
+
+// Unnecessary useCallback
+const handleClick = useCallback(() => {
+  onSelect(user.id);
+}, [onSelect, user.id]);
+
+// Impure component (side effect in render)
+export const Counter = ({ count }: TCounterProps) => {
+  document.title = `Count: ${count}`; // Side effect in render body
+  return <span>{count}</span>;
+};
+
+// Reading ref during render
+export const MeasuredBox = () => {
+  const ref = useRef<HTMLDivElement>(null);
+  const width = ref.current?.offsetWidth ?? 0; // Ref read during render
+  return <div ref={ref}>{width}px</div>;
+};
+
+// Overusing "use no memo"
+export const SimpleButton = () => {
+  "use no memo"; // No justification - don't opt out without reason
+  return <Button>Click</Button>;
+};
+```

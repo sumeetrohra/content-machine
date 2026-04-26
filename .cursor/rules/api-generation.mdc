@@ -1,0 +1,79 @@
+---
+description: Rules for working with auto-generated API hooks and the code generation pipeline.
+globs: "src/api/**/*.ts,**/*.tsx"
+---
+
+# API Code Generation
+
+## Rules
+
+- **Generated API hooks are read-only.** Never manually edit files inside the `src/api/generated/` directory. All changes will be overwritten on the next generation run.
+- **Regenerate hooks when the API spec changes.** Run the generation command (e.g., `pnpm generate:api`) whenever the OpenAPI/Swagger spec is updated. Commit the regenerated files along with the spec changes.
+- **Use generated hooks directly in components.** The generated hooks provide properly typed `useQuery` and `useMutation` wrappers. Do not write custom fetch logic for endpoints that have generated hooks.
+- **Custom hooks wrap generated hooks.** If you need additional logic (error handling, transformation, combined queries), create a custom hook in your module that wraps the generated hook.
+- **Follow the generated naming convention.** Generated hooks follow the pattern: `useGet<Resource>`, `useCreate<Resource>`, `useUpdate<Resource>`, `useDelete<Resource>`. Use these names consistently.
+- **Generated types are the source of truth** for API request and response shapes. Import types from the generated files rather than defining them manually.
+- **Never modify the API client configuration** in generated files. Configure base URL, interceptors, and headers in the shared API client setup.
+
+## Examples
+
+### Good
+
+```typescript
+// Using generated hooks directly
+import { useGetUsers, useCreateUser, useDeleteUser } from '@/api/generated/users';
+import type { TUser, TCreateUserRequest } from '@/api/generated/users';
+
+export const UserList = () => {
+  const { data: users, isLoading, isError } = useGetUsers();
+  const { mutate: createUser } = useCreateUser();
+  const { mutate: deleteUser } = useDeleteUser();
+
+  if (isLoading) return <Skeleton />;
+  if (isError) return <ErrorDisplay />;
+
+  return <UserTable users={users} onDelete={deleteUser} />;
+};
+
+// Wrapping a generated hook with custom logic
+import { useGetUser } from '@/api/generated/users';
+
+export const useUserWithPermissions = (userId: string) => {
+  const query = useGetUser(userId);
+  const permissions = usePermissionsStore((s) => s.permissions);
+
+  return {
+    ...query,
+    data: query.data
+      ? { ...query.data, canEdit: permissions.includes('edit_users') }
+      : undefined,
+  };
+};
+```
+
+### Bad
+
+```typescript
+// Manually editing generated files
+// src/api/generated/users.ts
+// DO NOT EDIT - this is wrong, changes will be overwritten
+
+// Writing custom fetch for an endpoint that has a generated hook
+const fetchUsers = async () => {
+  const res = await fetch('/api/users');
+  return res.json();
+};
+const { data } = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
+// Should use: const { data } = useGetUsers();
+
+// Manually defining types that exist in generated code
+type TUser = {
+  id: string;
+  name: string;
+  email: string;
+};
+// Should import from: @/api/generated/users
+
+// Modifying generated API client config
+// In src/api/generated/client.ts - NEVER edit this
+```

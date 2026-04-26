@@ -1,0 +1,74 @@
+---
+description: Enforces usage of semantic CSS variable color tokens instead of hardcoded or non-semantic colors.
+globs: "**/*.tsx,**/*.ts,**/*.css"
+---
+
+# Theme Colors
+
+## Rules
+
+- **Only use CSS variable-based semantic color tokens.** The allowed Tailwind classes map to CSS variables defined in the theme. Examples: `bg-background`, `text-foreground`, `bg-primary`, `text-primary-foreground`, `bg-secondary`, `text-secondary-foreground`, `bg-muted`, `text-muted-foreground`, `bg-accent`, `text-accent-foreground`, `bg-destructive`, `text-destructive-foreground`, `border-border`, `ring-ring`, `bg-card`, `text-card-foreground`, `bg-popover`, `text-popover-foreground`, `bg-input`.
+- **No hex values.** Never use `#fff`, `#000`, `#1a1a2e`, or any hex color in className, style attributes, or CSS files.
+- **No RGB/HSL values.** Never use `rgb()`, `rgba()`, `hsl()`, or `hsla()` directly in component code.
+- **No non-semantic Tailwind color classes.** Never use `text-red-500`, `bg-blue-600`, `border-gray-300`, `text-slate-700`, etc. These bypass the theme system and break dark mode.
+- **No arbitrary color values.** Never use Tailwind arbitrary values for colors like `bg-[#1a1a2e]` or `text-[rgb(255,0,0)]`.
+- **Opacity modifiers are allowed** on semantic tokens: `bg-primary/80`, `text-foreground/50`.
+- **For charts and data visualization**, use the chart tokens: `hsl(var(--chart-1))` through `hsl(var(--chart-5))`.
+- **If a semantic token does not exist** for your use case, request that a new token be added to the theme. Do not work around it with hardcoded colors.
+
+## Allowed Semantic Tokens
+
+| Token | Tailwind Class |
+|-------|---------------|
+| Background | `bg-background`, `text-background` |
+| Foreground | `text-foreground`, `bg-foreground` |
+| Primary | `bg-primary`, `text-primary`, `text-primary-foreground` |
+| Secondary | `bg-secondary`, `text-secondary`, `text-secondary-foreground` |
+| Muted | `bg-muted`, `text-muted`, `text-muted-foreground` |
+| Accent | `bg-accent`, `text-accent`, `text-accent-foreground` |
+| Destructive | `bg-destructive`, `text-destructive`, `text-destructive-foreground` |
+| Border | `border-border` |
+| Ring | `ring-ring` |
+| Input | `bg-input`, `border-input` |
+| Card | `bg-card`, `text-card-foreground` |
+| Popover | `bg-popover`, `text-popover-foreground` |
+
+## Examples
+
+### Good
+
+```typescript
+<div className="bg-background text-foreground">
+  <h1 className="text-primary">Title</h1>
+  <p className="text-muted-foreground">Description</p>
+  <div className="border border-border rounded-lg bg-card p-4">
+    <span className="text-card-foreground">Card content</span>
+  </div>
+  <Button className="bg-destructive text-destructive-foreground">
+    Delete
+  </Button>
+  <div className="bg-primary/10 text-primary">Highlighted section</div>
+</div>
+```
+
+### Bad
+
+```typescript
+// Hex values
+<div className="bg-[#1a1a2e] text-[#ffffff]" />
+<div style={{ backgroundColor: '#f5f5f5', color: '#333' }} />
+
+// Non-semantic Tailwind colors
+<p className="text-red-500">Error message</p>
+<div className="bg-gray-100 border-gray-300" />
+<span className="text-blue-600">Link text</span>
+<div className="bg-slate-800 text-slate-200" />
+
+// RGB/HSL
+<div style={{ color: 'rgb(255, 0, 0)' }} />
+<div className="bg-[hsl(210,50%,50%)]" />
+
+// Arbitrary color values
+<div className="bg-[#f0f0f0]" />
+<span className="text-[rgba(0,0,0,0.5)]" />
+```

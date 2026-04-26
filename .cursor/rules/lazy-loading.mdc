@@ -1,0 +1,112 @@
+---
+description: Lazy loading patterns using React.lazy() and Suspense for code splitting.
+globs: "**/*.tsx,**/routes/**/*.ts"
+---
+
+# Lazy Loading
+
+## Rules
+
+- **Use `React.lazy()` for all route-level components.** Every page/route component should be lazily loaded to split the bundle by route.
+- **Use `React.lazy()` for modals and dialogs.** Modal content is not needed until the user opens the modal, so it should be split into a separate chunk.
+- **Use `React.lazy()` for heavy components.** Components that import large libraries (charts, rich text editors, date pickers with complex logic) should be lazily loaded.
+- **Always wrap lazy components with `<Suspense>`.** Provide a meaningful fallback UI (skeleton, spinner) that matches the layout of the component being loaded.
+- **Use named exports with a re-export pattern.** React.lazy() only works with default exports. Use a re-export file to bridge named exports to default exports.
+- **Place Suspense boundaries strategically.** Put them at the route level in the router config and at the usage site for modals/heavy components. Do not wrap the entire app in a single Suspense boundary.
+- **Preload critical lazy components** on hover or route prefetch to reduce perceived loading time when possible.
+- **Do not lazy-load small components** that are always visible or are part of the initial render. Lazy loading adds overhead for tiny components.
+
+## Examples
+
+### Good
+
+```typescript
+// Route-level lazy loading in router config
+import { lazy, Suspense } from 'react';
+import { PageSkeleton } from '@/shared/components/skeletons/page-skeleton';
+
+const DashboardPage = lazy(() =>
+  import('@/modules/dashboard/components/dashboard-page').then((m) => ({
+    default: m.DashboardPage,
+  }))
+);
+
+const SettingsPage = lazy(() =>
+  import('@/modules/settings/components/settings-page').then((m) => ({
+    default: m.SettingsPage,
+  }))
+);
+
+// In router configuration
+const routes = [
+  {
+    path: '/dashboard',
+    element: (
+      <Suspense fallback={<PageSkeleton />}>
+        <DashboardPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/settings',
+    element: (
+      <Suspense fallback={<PageSkeleton />}>
+        <SettingsPage />
+      </Suspense>
+    ),
+  },
+];
+
+// Lazy-loaded modal
+const UserFormDialog = lazy(() =>
+  import('./user-form-dialog').then((m) => ({ default: m.UserFormDialog }))
+);
+
+export const UserList = () => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      <Button onClick={() => setIsOpen(true)}>{t('users.add')}</Button>
+      {isOpen && (
+        <Suspense fallback={<DialogSkeleton />}>
+          <UserFormDialog open={isOpen} onClose={() => setIsOpen(false)} />
+        </Suspense>
+      )}
+    </>
+  );
+};
+
+// Lazy-loaded heavy component (chart library)
+const RevenueChart = lazy(() =>
+  import('./revenue-chart').then((m) => ({ default: m.RevenueChart }))
+);
+
+<Suspense fallback={<Skeleton className="h-64 w-full" />}>
+  <RevenueChart data={revenueData} />
+</Suspense>
+```
+
+### Bad
+
+```typescript
+// Eagerly importing route-level components
+import { DashboardPage } from '@/modules/dashboard/components/dashboard-page';
+import { SettingsPage } from '@/modules/settings/components/settings-page';
+
+// Lazy without Suspense
+const Page = lazy(() => import('./page'));
+<Page /> // No Suspense boundary - will throw if not caught above
+
+// Lazy-loading tiny components
+const SmallBadge = lazy(() => import('./badge')); // Too small to benefit
+
+// Single Suspense for entire app
+<Suspense fallback={<Spinner />}>
+  <App /> {/* Too broad - everything shows spinner on any lazy load */}
+</Suspense>
+
+// Using default exports in source files (antipattern for this project)
+// my-component.tsx
+export default function MyComponent() { ... } // Project uses named exports
+```

@@ -1,0 +1,140 @@
+---
+description: Mandatory JSDoc documentation on all exported functions, components, hooks, types, interfaces, and enums.
+globs: "**/*.ts,**/*.tsx"
+---
+
+# JSDoc Documentation
+
+## Rules
+
+- **Every exported function must have JSDoc.** This includes utility functions, helper functions, and standalone functions. Document what the function does, its parameters, and return value.
+- **Every React component must have JSDoc.** Describe what the component renders and its purpose in the UI.
+- **Every custom hook must have JSDoc.** Describe the hook's purpose, parameters, and what it returns.
+- **Every exported type must have JSDoc.** Describe what the type represents and when to use it.
+- **Every exported interface must have JSDoc.** Describe the contract it defines.
+- **Every exported enum must have JSDoc.** Describe the enum's purpose and document each member if not self-explanatory.
+- **Required JSDoc tags:**
+  - `@param` for every parameter (with description)
+  - `@returns` for functions/hooks that return values
+  - `@throws` for functions that may throw errors
+  - `@example` for non-trivial functions, hooks, and utilities (at minimum one usage example)
+- **Keep descriptions concise but informative.** The first line should be a single-sentence summary. Add detail only if the usage is non-obvious.
+- **Document edge cases and constraints** in the description when relevant (nullable return values, required preconditions, performance considerations).
+
+## Examples
+
+### Good
+
+```typescript
+/**
+ * Formats a monetary value with the specified currency symbol.
+ *
+ * @param amount - The numeric amount to format
+ * @param currency - ISO 4217 currency code (e.g., 'USD', 'EUR')
+ * @param locale - Optional BCP 47 locale string. Defaults to user's locale.
+ * @returns The formatted currency string (e.g., "$1,234.56")
+ * @throws {AppError} If the currency code is invalid
+ *
+ * @example
+ * ```typescript
+ * formatCurrency(1234.56, 'USD');       // "$1,234.56"
+ * formatCurrency(1234.56, 'EUR', 'de'); // "1.234,56 €"
+ * ```
+ */
+export const formatCurrency = (
+  amount: number,
+  currency: string,
+  locale?: string,
+): string => {
+  // implementation
+};
+
+/**
+ * Displays a user profile card with avatar, name, and role badge.
+ *
+ * @param props - Component props
+ * @param props.user - The user data to display
+ * @param props.onEdit - Callback invoked when the edit button is clicked
+ * @param props.showActions - Whether to show action buttons. Defaults to true.
+ *
+ * @example
+ * ```tsx
+ * <UserCard user={userData} onEdit={handleEdit} />
+ * ```
+ */
+export const UserCard = ({ user, onEdit, showActions = true }: TUserCardProps) => {
+  // implementation
+};
+
+/**
+ * Manages authentication state and provides login/logout actions.
+ *
+ * @returns An object containing auth state and actions
+ * @returns .isAuthenticated - Whether the user is currently logged in
+ * @returns .user - The current user profile, or null if not authenticated
+ * @returns .login - Function to initiate login with credentials
+ * @returns .logout - Function to clear auth state and redirect to login
+ *
+ * @example
+ * ```typescript
+ * const { isAuthenticated, user, login, logout } = useAuth();
+ * ```
+ */
+export const useAuth = (): TUseAuthReturn => {
+  // implementation
+};
+
+/** Represents the possible states of an order in the system. */
+enum EOrderStatus {
+  /** Order has been created but not yet paid. */
+  PENDING = 'pending',
+  /** Payment received, order is being processed. */
+  PROCESSING = 'processing',
+  /** Order has been shipped to the customer. */
+  SHIPPED = 'shipped',
+  /** Order delivered and completed. */
+  DELIVERED = 'delivered',
+  /** Order was cancelled before fulfillment. */
+  CANCELLED = 'cancelled',
+}
+
+/**
+ * Configuration options for the data table component.
+ *
+ * @template TData - The type of data displayed in each row
+ */
+type TDataTableConfig<TData> = {
+  /** Column definitions for the table. */
+  columns: Array<TColumnDef<TData>>;
+  /** Whether to enable row selection via checkboxes. */
+  selectable: boolean;
+  /** Number of rows per page. Must be between 10 and 100. */
+  pageSize: number;
+};
+```
+
+### Bad
+
+```typescript
+// No JSDoc at all
+export const formatCurrency = (amount: number, currency: string) => { ... };
+
+// JSDoc without required tags
+/** Formats currency */
+export const formatCurrency = (amount: number, currency: string) => { ... };
+
+// Missing @param and @returns
+/**
+ * Formats a monetary value.
+ */
+export const formatCurrency = (amount: number, currency: string): string => { ... };
+
+// No JSDoc on component
+export const UserCard = ({ user }: TUserCardProps) => { ... };
+
+// No JSDoc on type
+export type TUserProfile = { id: string; name: string; };
+
+// No JSDoc on enum
+export enum EStatus { ACTIVE, INACTIVE }
+```

@@ -1,0 +1,89 @@
+---
+description: TypeScript naming conventions for types, interfaces, enums, and constants.
+globs: "**/*.ts,**/*.tsx"
+---
+
+# TypeScript Naming Conventions
+
+## Rules
+
+- **Prefix types with `T`.** All type aliases must start with `T` followed by PascalCase. Example: `TUserProfile`, `TApiResponse`, `TButtonProps`.
+- **Prefix interfaces with `I`.** All interfaces must start with `I` followed by PascalCase. Example: `IUserService`, `IRepository`, `IEventHandler`.
+- **Prefix enums with `E`.** All enums must start with `E` followed by PascalCase. Example: `EUserRole`, `EStatus`, `ETheme`.
+- **Enum members must use UPPER_SNAKE_CASE.** Example: `EUserRole.ADMIN`, `EStatus.IN_PROGRESS`, `ETheme.DARK_MODE`.
+- **Constants use UPPER_SNAKE_CASE.** Module-level constants that are truly constant (not derived at runtime) use UPPER_SNAKE_CASE. Example: `MAX_RETRY_COUNT`, `API_BASE_URL`.
+- **Component props types use `T` prefix.** Props types follow the pattern `T<ComponentName>Props`. Example: `TButtonProps`, `TUserCardProps`.
+- **Hook return types use `T` prefix.** Example: `TUseAuthReturn`, `TUseFormReturn`.
+- **Functions and variables use camelCase.** Standard camelCase for all functions, variables, and parameters.
+- **Components use PascalCase.** React component names use PascalCase: `UserProfile`, `DashboardLayout`.
+- **Prefer `type` over `interface`** for object shapes and props. Use `interface` only when you need declaration merging or implementing in a class.
+
+## Examples
+
+### Good
+
+```typescript
+// Type alias with T prefix
+type TUserProfile = {
+  id: string;
+  name: string;
+  email: string;
+  role: EUserRole;
+};
+
+// Component props type
+type TUserCardProps = {
+  user: TUserProfile;
+  onDelete: (id: string) => void;
+};
+
+// Interface with I prefix (used for contracts/services)
+interface IUserService {
+  getUser(id: string): Promise<TUserProfile>;
+  updateUser(id: string, data: Partial<TUserProfile>): Promise<TUserProfile>;
+}
+
+// Enum with E prefix and UPPER_SNAKE_CASE members
+enum EUserRole {
+  ADMIN = 'admin',
+  EDITOR = 'editor',
+  VIEWER = 'viewer',
+  SUPER_ADMIN = 'super_admin',
+}
+
+enum EHttpStatus {
+  OK = 200,
+  NOT_FOUND = 404,
+  INTERNAL_SERVER_ERROR = 500,
+}
+
+// Constants in UPPER_SNAKE_CASE
+const MAX_RETRY_COUNT = 3;
+const API_BASE_URL = '/api/v1';
+const DEFAULT_PAGE_SIZE = 20;
+```
+
+### Bad
+
+```typescript
+// Missing T prefix on types
+type UserProfile = { id: string; name: string };
+type ButtonProps = { label: string };
+
+// Missing I prefix on interfaces
+interface UserService { getUser(id: string): Promise<User> }
+
+// Missing E prefix on enums
+enum UserRole { Admin, Editor }
+
+// Enum members not UPPER_SNAKE_CASE
+enum EUserRole {
+  admin = 'admin',       // wrong: lowercase
+  Editor = 'editor',     // wrong: PascalCase
+  superAdmin = 'super',  // wrong: camelCase
+}
+
+// Constants not UPPER_SNAKE_CASE
+const maxRetryCount = 3;
+const apiBaseUrl = '/api/v1';
+```

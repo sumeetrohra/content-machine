@@ -1,0 +1,127 @@
+---
+description: Rules for error reporting and monitoring via the Sentry module wrapper.
+globs: "**/*.ts,**/*.tsx"
+---
+
+# Sentry Usage
+
+## Rules
+
+- **Always import from `@/modules/sentry`.** Never import directly from `@sentry/react` or `@sentry/browser`. The project wraps Sentry in a module that provides typed helpers, consistent configuration, and environment-aware behavior.
+- **Use `captureAppError()` for typed errors.** When catching `AppError`, `ApiError`, `ValidationError`, or other custom error classes from `@/shared/utils/errors`, use `captureAppError()`. It extracts structured metadata (error code, context, severity) and attaches it to the Sentry event.
+- **Use `captureException()` for raw/unknown errors.** When the error type is unknown (generic catch blocks, third-party errors), use `captureException()`. It handles `unknown` type safely and adds default context.
+- **Use error boundaries for component-level errors.** Wrap route-level components and critical UI sections in `SentryErrorBoundary` from the Sentry module. This catches React render errors and reports them automatically.
+- **Add breadcrumbs for important user actions.** Use `addBreadcrumb()` to log significant user actions (navigation, form submissions, feature toggles) that provide context when an error occurs later.
+- **Set user context on authentication.** Call `setUser()` from the Sentry module after login and `clearUser()` after logout. This associates errors with the affected user.
+- **Never log sensitive data to Sentry.** Do not include passwords, tokens, PII, or financial data in error messages, breadcrumbs, or context. The Sentry module scrubs common patterns, but be explicit about exclusions.
+- **Use severity levels appropriately.** `fatal` for app crashes, `error` for handled errors that affect functionality, `warning` for degraded experience, `info` for notable events.
+
+## Examples
+
+### Good
+
+```typescript
+import {
+  captureAppError,
+  captureException,
+  addBreadcrumb,
+  setUser,
+  clearUser,
+  SentryErrorBoundary,
+} from '@/modules/sentry';
+import { AppError, ApiError } from '@/shared/utils/errors';
+
+// Typed error reporting
+const handleSubmit = async (data: TFormData) => {
+  try {
+    await createUser(data);
+    toast.success(t('users.created'));
+  } catch (error: unknown) {
+    if (error instanceof ApiError) {
+      captureAppError(error, {
+        context: { endpoint: '/api/users', method: 'POST' },
+        severity: 'error',
+      });
+      toast.error(t('users.create_failed'));
+    } else {
+      captureException(error, {
+        context: { action: 'createUser' },
+      });
+      toast.error(t('errors.unexpected'));
+    }
+  }
+};
+
+// Breadcrumbs for user actions
+const handleNavigate = (section: string) => {
+  addBreadcrumb({
+    category: 'navigation',
+    message: `Navigated to ${section}`,
+    level: 'info',
+  });
+  navigate(`/${section}`);
+};
+
+// User context management
+const handleLogin = async (credentials: TCredentials) => {
+  const user = await login(credentials);
+  setUser({ id: user.id, email: user.email, role: user.role });
+};
+
+const handleLogout = () => {
+  clearUser();
+  logout();
+};
+
+// Error boundary at route level
+export const DashboardRoute = () => (
+  <SentryErrorBoundary
+    fallback={<ErrorFallback />}
+    beforeCapture={(scope) => {
+      scope.setTag('route', 'dashboard');
+    }}
+  >
+    <Suspense fallback={<PageSkeleton />}>
+      <DashboardPage />
+    </Suspense>
+  </SentryErrorBoundary>
+);
+```
+
+### Bad
+
+```typescript
+// Importing Sentry SDK directly
+import * as Sentry from '@sentry/react';
+Sentry.captureException(error); // Use @/modules/sentry wrapper
+
+// Using captureException for typed errors (loses metadata)
+catch (error) {
+  if (error instanceof ApiError) {
+    captureException(error); // Should use captureAppError for typed errors
+  }
+}
+
+// console.error instead of Sentry
+catch (error) {
+  console.error('Failed to load users:', error); // Use Sentry
+
+}
+
+// Logging sensitive data
+captureAppError(error, {
+  context: {
+    password: formData.password,     // NEVER log passwords
+    token: authToken,                // NEVER log tokens
+    creditCard: user.cardNumber,     // NEVER log financial data
+  },
+});
+
+// No error boundary on routes
+<Route path="/dashboard" element={<DashboardPage />} />
+// Should wrap in SentryErrorBoundary
+
+// Not setting user context
+// Login succeeds but setUser() is never called
+// Errors will have no user association
+```

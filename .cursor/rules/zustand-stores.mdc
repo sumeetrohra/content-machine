@@ -1,0 +1,94 @@
+---
+description: Patterns and conventions for Zustand state management stores.
+globs: "**/*.store.ts,**/*.store.tsx"
+---
+
+# Zustand Store Conventions
+
+## Rules
+
+- **Always use selectors** when consuming store state in components. Never destructure the entire store. Selectors prevent unnecessary re-renders by only subscribing to the specific slice of state used.
+- **Keep actions synchronous.** Store actions should be pure state transitions. Move async logic (API calls, side effects) to standalone async hooks/services that call store actions upon completion.
+- **Store naming pattern:** Files must be named `<domain>.store.ts`. The hook must be named `use<Domain>Store`. Example: `auth.store.ts` exports `useAuthStore`.
+- **DevTools action names:** Always provide a name for every `set()` call using the third parameter or the `devtools` middleware action name. This makes debugging in Redux DevTools straightforward.
+- **Organize stores by module.** Place store files inside their respective module folder under `src/modules/<module>/stores/`.
+- **Use the `immer` middleware** for stores with deeply nested state to enable mutable-style updates safely.
+- **Separate state from actions** in the store type definition for clarity.
+- **Never store server state in Zustand.** Zustand is exclusively for client-side UI state (modals, sidebar open/close, selected filters, user preferences).
+
+## Examples
+
+### Good
+
+```typescript
+// auth.store.ts
+import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
+
+interface AuthState {
+  token: string | null;
+  isAuthenticated: boolean;
+}
+
+interface AuthActions {
+  setToken: (token: string) => void;
+  clearAuth: () => void;
+}
+
+export const useAuthStore = create<AuthState & AuthActions>()(
+  devtools(
+    (set) => ({
+      token: null,
+      isAuthenticated: false,
+      setToken: (token) =>
+        set(
+          { token, isAuthenticated: true },
+          false,
+          'auth/setToken'
+        ),
+      clearAuth: () =>
+        set(
+          { token: null, isAuthenticated: false },
+          false,
+          'auth/clearAuth'
+        ),
+    }),
+    { name: 'AuthStore' }
+  )
+);
+
+// Consuming with selectors
+const token = useAuthStore((state) => state.token);
+const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+const clearAuth = useAuthStore((state) => state.clearAuth);
+```
+
+### Bad
+
+```typescript
+// Destructuring entire store (causes re-render on ANY state change)
+const { token, isAuthenticated, setToken } = useAuthStore();
+
+// Async logic inside store action
+const useUserStore = create((set) => ({
+  users: [],
+  fetchUsers: async () => {
+    const res = await fetch('/api/users'); // Async in store - wrong
+    const data = await res.json();
+    set({ users: data });
+  },
+}));
+
+// No DevTools action name
+set({ count: count + 1 }); // Missing action name
+
+// Server state in Zustand
+const useProductStore = create((set) => ({
+  products: [],           // Server state should not live in Zustand
+  isLoading: false,       // Keep server-request status out of UI stores
+  error: null,            // Keep request errors in data layer/hooks
+}));
+
+// Wrong file naming
+// store.ts, useStore.ts, globalState.ts - all wrong
+```
