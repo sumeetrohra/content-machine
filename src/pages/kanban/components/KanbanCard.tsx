@@ -37,7 +37,7 @@ export const KanbanCard = ({ idea }: TKanbanCardProps) => {
     opacity: isDragging ? 0.4 : 1,
   };
 
-  const FormatIcon = FORMAT_ICONS[idea.content_format] ?? FileText;
+  const FormatIcon = FORMAT_ICONS[idea.contentFormat] ?? FileText;
   const displayTitle =
     idea.title ?? idea.content.slice(0, 80).replace(/\s+/g, ' ');
 
@@ -79,10 +79,10 @@ export const KanbanCard = ({ idea }: TKanbanCardProps) => {
                 )}
                 <Badge variant="outline" className="gap-1 text-xs">
                   <FormatIcon className="size-2.5" />
-                  {t(`kanban.card.format.${idea.content_format}`)}
+                  {t(`kanban.card.format.${idea.contentFormat}`)}
                 </Badge>
                 <span className="ml-auto text-xs text-muted-foreground">
-                  {formatRelative(idea.created_at)}
+                  {formatRelative(idea.createdAt)}
                 </span>
               </div>
             </div>

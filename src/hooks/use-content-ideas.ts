@@ -1,6 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  collection,
+  doc,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+  vector,
+  Timestamp,
+  type DocumentData,
+} from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { startOf, endOf } from '@/shared/utils/datetime-utils';
-import { supabase } from '@/modules/supabase';
+import { db, functions } from '@/modules/firebase';
 import { useAuthUser } from '@/shared/stores/auth.store';
 import type {
   TContentIdea,
@@ -20,22 +33,57 @@ function getDateRange(filter: ETimeFilter): {
   return { from: startOf(unit), to: endOf(unit) };
 }
 
-async function fetchEmbedding(text: string): Promise<number[] | null> {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+function tsToIso(value: unknown): string | null {
+  return value instanceof Timestamp ? value.toDate().toISOString() : null;
+}
 
-  const res = await fetch(`${supabaseUrl}/functions/v1/generate-embedding`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${anonKey}`,
-    },
-    body: JSON.stringify({ text }),
-  });
+function ideaFromDoc(id: string, data: DocumentData): TContentIdea {
+  return {
+    id,
+    accountId: data.accountId as string,
+    title: (data.title as string | null | undefined) ?? null,
+    content: data.content as string,
+    contentFormat: data.contentFormat as TContentIdea['contentFormat'],
+    status: data.status as TContentIdea['status'],
+    source: data.source as TContentIdea['source'],
+    rssFeedId: (data.rssFeedId as string | null | undefined) ?? null,
+    sourceUrl: (data.sourceUrl as string | null | undefined) ?? null,
+    author: (data.author as string | null | undefined) ?? null,
+    publishedAt: tsToIso(data.publishedAt),
+    createdAt: tsToIso(data.createdAt) ?? '',
+    updatedAt: tsToIso(data.updatedAt) ?? '',
+  };
+}
 
-  if (!res.ok) return null;
-  const data = (await res.json()) as { embedding: number[] };
-  return data.embedding ?? null;
+function ideaFromCallable(raw: Record<string, unknown>): TContentIdea {
+  return {
+    id: raw.id as string,
+    accountId: raw.accountId as string,
+    title: (raw.title as string | null | undefined) ?? null,
+    content: raw.content as string,
+    contentFormat: raw.contentFormat as TContentIdea['contentFormat'],
+    status: raw.status as TContentIdea['status'],
+    source: raw.source as TContentIdea['source'],
+    rssFeedId: (raw.rssFeedId as string | null | undefined) ?? null,
+    sourceUrl: (raw.sourceUrl as string | null | undefined) ?? null,
+    author: (raw.author as string | null | undefined) ?? null,
+    publishedAt: (raw.publishedAt as string | null | undefined) ?? null,
+    createdAt: (raw.createdAt as string | undefined) ?? '',
+    updatedAt: (raw.updatedAt as string | undefined) ?? '',
+  };
+}
+
+async function generateEmbedding(text: string): Promise<number[] | null> {
+  try {
+    const fn = httpsCallable<{ text: string }, { embedding: number[] }>(
+      functions,
+      'generateEmbedding',
+    );
+    const res = await fn({ text });
+    return res.data.embedding ?? null;
+  } catch {
+    return null;
+  }
 }
 
 type TUseContentIdeasOptions = {
@@ -51,30 +99,49 @@ export const useContentIdeas = (options: TUseContentIdeasOptions) => {
   return useQuery({
     queryKey: [
       IDEAS_KEY,
-      { timeFilter, searchQuery, isEmbeddingSearch, userId: user?.id },
+      { timeFilter, searchQuery, isEmbeddingSearch, userId: user?.uid },
     ],
     queryFn: async (): Promise<TContentIdea[]> => {
       if (!user) return [];
 
       const { from, to } = getDateRange(timeFilter);
-      let embedding: number[] | null = null;
+      const trimmed = searchQuery.trim();
+      const queryString = isEmbeddingSearch ? trimmed : '';
 
-      if (isEmbeddingSearch && searchQuery.trim()) {
-        embedding = await fetchEmbedding(searchQuery.trim());
-      }
+      const search = httpsCallable<
+        {
+          query: string;
+          status: EContentStatus | null;
+          from: string | null;
+          to: string | null;
+          limit: number;
+        },
+        { results: Array<Record<string, unknown> & { id: string }> }
+      >(functions, 'searchContentIdeas');
 
-      const { data, error } = await supabase.rpc('search_content_ideas', {
-        p_account_id: user.id,
-        p_query: isEmbeddingSearch ? '' : searchQuery.trim(),
-        p_embedding: embedding,
-        p_status: null,
-        p_from: from,
-        p_to: to,
-        p_limit: 200,
+      const res = await search({
+        query: queryString,
+        status: null,
+        from,
+        to,
+        limit: 200,
       });
 
-      if (error) throw error;
-      return (data as TContentIdea[]) ?? [];
+      const ideas = res.data.results.map(ideaFromCallable);
+
+      // Keyword-only fallback: when embedding search is off, do a substring
+      // filter on title/content client-side. v1 simplification — replaces
+      // the dropped Postgres FTS path.
+      if (!isEmbeddingSearch && trimmed) {
+        const needle = trimmed.toLowerCase();
+        return ideas.filter(
+          idea =>
+            (idea.title?.toLowerCase().includes(needle) ?? false) ||
+            idea.content.toLowerCase().includes(needle),
+        );
+      }
+
+      return ideas;
     },
     enabled: !!user,
     staleTime: 30_000,
@@ -87,14 +154,10 @@ export const useContentIdea = (id: string) => {
   return useQuery({
     queryKey: [IDEAS_KEY, id],
     queryFn: async (): Promise<TContentIdea | null> => {
-      const { data, error } = await supabase
-        .from('content_ideas')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data as TContentIdea | null;
+      const ref = doc(db, 'contentIdeas', id);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return null;
+      return ideaFromDoc(snap.id, snap.data());
     },
     enabled: !!user && !!id,
   });
@@ -108,31 +171,34 @@ export const useCreateContentIdea = () => {
     mutationFn: async (input: TCreateIdeaInput): Promise<TContentIdea> => {
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
-        .from('content_ideas')
-        .insert({
-          account_id: user.id,
-          content: input.content,
-          content_format: input.content_format,
-          title: input.title ?? null,
-          status: 'idea',
-          source: 'manual',
-        })
-        .select()
-        .single();
+      const ref = await addDoc(collection(db, 'contentIdeas'), {
+        accountId: user.uid,
+        content: input.content,
+        contentFormat: input.contentFormat,
+        title: input.title ?? null,
+        status: 'idea',
+        source: 'manual',
+        rssFeedId: null,
+        sourceUrl: null,
+        author: null,
+        publishedAt: null,
+        embedding: null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
 
-      if (error) throw error;
-      const idea = data as TContentIdea;
+      const snap = await getDoc(ref);
+      const idea = ideaFromDoc(ref.id, snap.data() ?? {});
 
-      // Generate and patch embedding asynchronously (non-blocking for UX)
-      fetchEmbedding(
+      // Generate and patch embedding asynchronously (non-blocking for UX).
+      generateEmbedding(
         [input.title, input.content].filter(Boolean).join(' '),
       ).then(async embedding => {
         if (!embedding) return;
-        await supabase
-          .from('content_ideas')
-          .update({ embedding })
-          .eq('id', idea.id);
+        await updateDoc(doc(db, 'contentIdeas', ref.id), {
+          embedding: vector(embedding),
+          updatedAt: serverTimestamp(),
+        });
       });
 
       return idea;
@@ -154,12 +220,10 @@ export const useUpdateIdeaStatus = () => {
       id: string;
       status: EContentStatus;
     }): Promise<void> => {
-      const { error } = await supabase
-        .from('content_ideas')
-        .update({ status })
-        .eq('id', id);
-
-      if (error) throw error;
+      await updateDoc(doc(db, 'contentIdeas', id), {
+        status,
+        updatedAt: serverTimestamp(),
+      });
     },
     onMutate: async ({ id, status }) => {
       await queryClient.cancelQueries({ queryKey: [IDEAS_KEY] });
@@ -198,14 +262,13 @@ export const useUpdateContentIdea = () => {
     }: {
       id: string;
       updates: Partial<
-        Pick<TContentIdea, 'title' | 'content' | 'content_format' | 'status'>
+        Pick<TContentIdea, 'title' | 'content' | 'contentFormat' | 'status'>
       >;
     }): Promise<void> => {
-      const { error } = await supabase
-        .from('content_ideas')
-        .update(updates)
-        .eq('id', id);
-      if (error) throw error;
+      await updateDoc(doc(db, 'contentIdeas', id), {
+        ...updates,
+        updatedAt: serverTimestamp(),
+      });
     },
     onSuccess: (_data, { id }) => {
       queryClient.invalidateQueries({ queryKey: [IDEAS_KEY] });
@@ -219,11 +282,7 @@ export const useDeleteContentIdea = () => {
 
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      const { error } = await supabase
-        .from('content_ideas')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
+      await deleteDoc(doc(db, 'contentIdeas', id));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [IDEAS_KEY] });
