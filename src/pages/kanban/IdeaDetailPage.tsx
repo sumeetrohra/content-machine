@@ -206,22 +206,22 @@ export const IdeaDetailPage = () => {
       {/* Metadata */}
       <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
         <span>
-          {t('kanban.detail.addedAt')}: {formatDate(idea.created_at)} (
-          {formatRelative(idea.created_at)})
+          {t('kanban.detail.addedAt')}: {formatDate(idea.createdAt)} (
+          {formatRelative(idea.createdAt)})
         </span>
         {idea.author && (
           <span>
             {t('kanban.detail.author')}: {idea.author}
           </span>
         )}
-        {idea.published_at && (
+        {idea.publishedAt && (
           <span>
-            {t('kanban.detail.publishedAt')}: {formatDate(idea.published_at)}
+            {t('kanban.detail.publishedAt')}: {formatDate(idea.publishedAt)}
           </span>
         )}
-        {idea.source_url && (
+        {idea.sourceUrl && (
           <a
-            href={idea.source_url}
+            href={idea.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1 hover:text-foreground"
@@ -236,11 +236,11 @@ export const IdeaDetailPage = () => {
 
       {/* Content */}
       <div>
-        {idea.content_format === 'markdown' ? (
+        {idea.contentFormat === 'markdown' ? (
           <div className="prose prose-sm dark:prose-invert max-w-none">
             <ReactMarkdown>{idea.content}</ReactMarkdown>
           </div>
-        ) : idea.content_format === 'html' ? (
+        ) : idea.contentFormat === 'html' ? (
           <div
             className="prose prose-sm dark:prose-invert max-w-none"
             dangerouslySetInnerHTML={{ __html: stripScriptTags(idea.content) }}

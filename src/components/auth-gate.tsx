@@ -1,7 +1,4 @@
-import {
-  useAuthIsInitializing,
-  useAuthSession,
-} from '@/shared/stores/auth.store';
+import { useAuthIsInitializing, useAuthUser } from '@/shared/stores/auth.store';
 import { LoginPage } from '@/pages/auth/LoginPage';
 
 type TAuthGateProps = {
@@ -10,7 +7,7 @@ type TAuthGateProps = {
 
 export const AuthGate = ({ children }: TAuthGateProps) => {
   const isInitializing = useAuthIsInitializing();
-  const session = useAuthSession();
+  const user = useAuthUser();
 
   if (isInitializing) {
     return (
@@ -20,7 +17,7 @@ export const AuthGate = ({ children }: TAuthGateProps) => {
     );
   }
 
-  if (!session) {
+  if (!user) {
     return <LoginPage />;
   }
 

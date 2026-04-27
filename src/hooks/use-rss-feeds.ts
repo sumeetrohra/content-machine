@@ -1,5 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/modules/supabase';
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  Timestamp,
+  type DocumentData,
+} from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from '@/modules/firebase';
 import { useAuthUser } from '@/shared/stores/auth.store';
 import type {
   TRssFeed,
@@ -9,19 +23,37 @@ import type {
 const FEEDS_KEY = 'rss-feeds';
 const IDEAS_KEY = 'content-ideas';
 
+function tsToIso(value: unknown): string | null {
+  return value instanceof Timestamp ? value.toDate().toISOString() : null;
+}
+
+function feedFromDoc(id: string, data: DocumentData): TRssFeed {
+  return {
+    id,
+    accountId: data.accountId as string,
+    name: data.name as string,
+    url: data.url as string,
+    isActive: (data.isActive as boolean | undefined) ?? true,
+    lastFetchedAt: tsToIso(data.lastFetchedAt),
+    createdAt: tsToIso(data.createdAt) ?? '',
+    updatedAt: tsToIso(data.updatedAt) ?? '',
+  };
+}
+
 export const useRssFeeds = () => {
   const user = useAuthUser();
 
   return useQuery({
-    queryKey: [FEEDS_KEY, user?.id],
+    queryKey: [FEEDS_KEY, user?.uid],
     queryFn: async (): Promise<TRssFeed[]> => {
-      const { data, error } = await supabase
-        .from('rss_feeds')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return (data as TRssFeed[]) ?? [];
+      if (!user) return [];
+      const q = query(
+        collection(db, 'rssFeeds'),
+        where('accountId', '==', user.uid),
+        orderBy('createdAt', 'desc'),
+      );
+      const snap = await getDocs(q);
+      return snap.docs.map(d => feedFromDoc(d.id, d.data()));
     },
     enabled: !!user,
   });
@@ -32,17 +64,18 @@ export const useCreateRssFeed = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: TCreateFeedInput): Promise<TRssFeed> => {
+    mutationFn: async (input: TCreateFeedInput): Promise<void> => {
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
-        .from('rss_feeds')
-        .insert({ account_id: user.id, name: input.name, url: input.url })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as TRssFeed;
+      await addDoc(collection(db, 'rssFeeds'), {
+        accountId: user.uid,
+        name: input.name,
+        url: input.url,
+        isActive: true,
+        lastFetchedAt: null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [FEEDS_KEY] });
@@ -55,8 +88,7 @@ export const useDeleteRssFeed = () => {
 
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      const { error } = await supabase.from('rss_feeds').delete().eq('id', id);
-      if (error) throw error;
+      await deleteDoc(doc(db, 'rssFeeds', id));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [FEEDS_KEY] });
@@ -65,27 +97,15 @@ export const useDeleteRssFeed = () => {
 };
 
 export const useTriggerRssFetch = () => {
-  const user = useAuthUser();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (feedAccountId?: string): Promise<void> => {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-
-      const res = await fetch(`${supabaseUrl}/functions/v1/fetch-rss`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${anonKey}`,
-        },
-        body: JSON.stringify({ account_id: feedAccountId ?? user?.id }),
-      });
-
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(err.error ?? 'RSS fetch failed');
-      }
+      const fetchRss = httpsCallable<
+        { accountId?: string },
+        { inserted: number }
+      >(functions, 'fetchRss');
+      await fetchRss({ accountId: feedAccountId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [IDEAS_KEY] });

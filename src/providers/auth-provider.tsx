@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { supabase } from '@/modules/supabase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/modules/firebase';
 import { useAuthActions } from '@/shared/stores/auth.store';
 
 type TAuthProviderProps = {
@@ -7,21 +8,17 @@ type TAuthProviderProps = {
 };
 
 export const AuthProvider = ({ children }: TAuthProviderProps) => {
-  const { setSession, setInitialized } = useAuthActions();
+  const { setUser, setInitialized } = useAuthActions();
 
-  // eslint-disable-next-line no-restricted-syntax -- subscribing to Supabase imperative auth API; requires cleanup on unmount
+  // eslint-disable-next-line no-restricted-syntax -- subscribing to Firebase imperative auth API; requires cleanup on unmount
   useEffect(() => {
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setInitialized();
-      },
-    );
+    const unsubscribe = onAuthStateChanged(auth, user => {
+      setUser(user);
+      setInitialized();
+    });
 
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, [setSession, setInitialized]);
+    return unsubscribe;
+  }, [setUser, setInitialized]);
 
   return <>{children}</>;
 };

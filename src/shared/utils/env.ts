@@ -10,10 +10,28 @@ export const env = {
   get SENTRY_DSN(): string {
     return import.meta.env.VITE_SENTRY_DSN ?? '';
   },
-  get SUPABASE_URL(): string {
-    return import.meta.env.VITE_SUPABASE_URL ?? '';
+  get FIREBASE_API_KEY(): string {
+    return import.meta.env.VITE_FIREBASE_API_KEY ?? '';
   },
-  get SUPABASE_ANON_KEY(): string {
-    return import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
+  get FIREBASE_AUTH_DOMAIN(): string {
+    return import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? '';
+  },
+  get FIREBASE_PROJECT_ID(): string {
+    return import.meta.env.VITE_FIREBASE_PROJECT_ID ?? '';
+  },
+  get FIREBASE_STORAGE_BUCKET(): string {
+    return import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? '';
+  },
+  get FIREBASE_MESSAGING_SENDER_ID(): string {
+    return import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '';
+  },
+  get FIREBASE_APP_ID(): string {
+    return import.meta.env.VITE_FIREBASE_APP_ID ?? '';
+  },
+  get FIREBASE_FUNCTIONS_REGION(): string {
+    return import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION ?? 'us-central1';
+  },
+  get FIREBASE_USE_EMULATOR(): boolean {
+    return import.meta.env.VITE_FIREBASE_USE_EMULATOR === '1';
   },
 };

@@ -5,35 +5,34 @@ export type ETimeFilter = 'week' | 'month' | 'year' | 'all';
 
 export type TContentIdea = {
   id: string;
-  account_id: string;
+  accountId: string;
   title: string | null;
   content: string;
-  content_format: EContentFormat;
+  contentFormat: EContentFormat;
   status: EContentStatus;
   source: EContentSource;
-  rss_feed_id: string | null;
-  source_url: string | null;
+  rssFeedId: string | null;
+  sourceUrl: string | null;
   author: string | null;
-  published_at: string | null;
-  embedding: number[] | null;
-  created_at: string;
-  updated_at: string;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type TRssFeed = {
   id: string;
-  account_id: string;
+  accountId: string;
   name: string;
   url: string;
-  last_fetched_at: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  lastFetchedAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type TCreateIdeaInput = {
   content: string;
-  content_format: EContentFormat;
+  contentFormat: EContentFormat;
   title?: string;
 };
 

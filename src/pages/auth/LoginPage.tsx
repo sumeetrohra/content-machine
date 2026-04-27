@@ -3,7 +3,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod/v4';
 import { useTranslation } from 'react-i18next';
-import { supabase } from '@/modules/supabase';
+import { signInWithEmailAndPassword, type AuthError } from 'firebase/auth';
+import { auth } from '@/modules/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +16,14 @@ const loginSchema = z.object({
 });
 
 type TLoginForm = z.infer<typeof loginSchema>;
+
+const INVALID_CREDENTIAL_CODES = new Set([
+  'auth/invalid-credential',
+  'auth/invalid-login-credentials',
+  'auth/wrong-password',
+  'auth/user-not-found',
+  'auth/invalid-email',
+]);
 
 export const LoginPage = () => {
   const { t } = useTranslation();
@@ -30,13 +39,11 @@ export const LoginPage = () => {
 
   const onSubmit = async (data: TLoginForm) => {
     setServerError(null);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.password,
-    });
-
-    if (error) {
-      if (error.code === 'invalid_credentials') {
+    try {
+      await signInWithEmailAndPassword(auth, data.email, data.password);
+    } catch (err) {
+      const code = (err as AuthError).code;
+      if (INVALID_CREDENTIAL_CODES.has(code)) {
         setServerError(t('auth.login.invalidCredentials'));
       } else {
         setServerError(t('auth.login.genericError'));

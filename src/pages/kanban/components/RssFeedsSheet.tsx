@@ -92,10 +92,10 @@ export const RssFeedsSheet = ({ open, onOpenChange }: TRssFeedsSheetProps) => {
                     <p className="truncate text-xs text-muted-foreground">
                       {feed.url}
                     </p>
-                    {feed.last_fetched_at && (
+                    {feed.lastFetchedAt && (
                       <p className="text-xs text-muted-foreground">
                         {t('kanban.rssFeeds.lastFetched')}:{' '}
-                        {formatRelative(feed.last_fetched_at)}
+                        {formatRelative(feed.lastFetchedAt)}
                       </p>
                     )}
                   </div>
@@ -104,7 +104,7 @@ export const RssFeedsSheet = ({ open, onOpenChange }: TRssFeedsSheetProps) => {
                       variant="ghost"
                       size="icon-sm"
                       disabled={triggerFetch.isPending}
-                      onClick={() => triggerFetch.mutate(feed.account_id)}
+                      onClick={() => triggerFetch.mutate(feed.accountId)}
                       title={t('kanban.rssFeeds.fetchNow')}
                     >
                       {triggerFetch.isPending ? (

@@ -33,7 +33,7 @@ function detectFormat(content: string): EContentFormat {
 const addIdeaSchema = z.object({
   content: z.string().min(1),
   title: z.string().optional(),
-  content_format: z.enum(['text', 'markdown', 'html', 'auto']),
+  contentFormat: z.enum(['text', 'markdown', 'html', 'auto']),
 });
 
 type TAddIdeaForm = z.infer<typeof addIdeaSchema>;
@@ -50,7 +50,7 @@ export const AddIdeaDialog = ({ open, onOpenChange }: TAddIdeaDialogProps) => {
 
   const [contentPreview, setContentPreview] = useState('');
   const [formatValue, setFormatValue] =
-    useState<TAddIdeaForm['content_format']>('auto');
+    useState<TAddIdeaForm['contentFormat']>('auto');
 
   const {
     register,
@@ -60,20 +60,20 @@ export const AddIdeaDialog = ({ open, onOpenChange }: TAddIdeaDialogProps) => {
     formState: { errors, isSubmitting },
   } = useForm<TAddIdeaForm>({
     resolver: zodResolver(addIdeaSchema),
-    defaultValues: { content_format: 'auto' },
+    defaultValues: { contentFormat: 'auto' },
   });
 
   const onSubmit = async (data: TAddIdeaForm) => {
     setServerError(null);
     try {
       const resolvedFormat: EContentFormat =
-        data.content_format === 'auto'
+        data.contentFormat === 'auto'
           ? detectFormat(data.content)
-          : data.content_format;
+          : data.contentFormat;
 
       await createIdea.mutateAsync({
         content: data.content,
-        content_format: resolvedFormat,
+        contentFormat: resolvedFormat,
         title: data.title || undefined,
       });
 
@@ -138,9 +138,9 @@ export const AddIdeaDialog = ({ open, onOpenChange }: TAddIdeaDialogProps) => {
               <Select
                 value={formatValue}
                 onValueChange={val => {
-                  const f = val as TAddIdeaForm['content_format'];
+                  const f = val as TAddIdeaForm['contentFormat'];
                   setFormatValue(f);
-                  setValue('content_format', f);
+                  setValue('contentFormat', f);
                 }}
               >
                 <SelectTrigger>
