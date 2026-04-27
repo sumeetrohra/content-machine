@@ -29,6 +29,9 @@
   "kanban": {
     "title": "Content Ideas",
     "loadError": "Failed to load ideas. Please refresh.",
+    "runPipeline": "Run pipeline now",
+    "pipelineSuccess": "Pipeline complete: {{inserted}} new, {{accepted}} accepted, {{rejected}} rejected.",
+    "pipelineError": "Pipeline run failed.",
     "columns": {
       "idea": "Ideas",
       "accepted": "Accepted",
@@ -92,10 +95,44 @@
       "author": "Author",
       "publishedAt": "Published",
       "addedAt": "Added",
-      "notFound": "Idea not found."
+      "notFound": "Idea not found.",
+      "viralityScore": "Virality",
+      "rescore": "Re-score",
+      "scoreSuccess": "Scored {{score}}/10",
+      "scoreError": "Failed to score article.",
+      "suggestFormats": "Suggest formats",
+      "formatsSuccess": "Suggested {{count}} format(s).",
+      "formatsError": "Failed to suggest formats.",
+      "suggestedFormats": "Suggested formats",
+      "generateDraft": "Generate draft",
+      "draftSuccess": "Draft generated.",
+      "draftError": "Failed to generate draft.",
+      "drafts": "Drafts",
+      "copy": "Copy",
+      "copied": "Copied to clipboard.",
+      "deleteDraft": "Delete draft",
+      "articleContent": "Article content",
+      "dupOf": "Duplicate ({{sim}}% similar)"
     }
   },
   "admin": {
+    "persona": {
+      "title": "Persona & virality rubric",
+      "subtitle": "Tune how the LLM scores articles for virality and how the daily pipeline filters them.",
+      "manage": "Persona",
+      "personaLabel": "Persona",
+      "rubricLabel": "Virality rubric",
+      "dedupThreshold": "Dedup threshold (0-1)",
+      "lookbackDays": "Lookback days",
+      "dailyCap": "Daily accepted cap",
+      "save": "Save",
+      "saveSuccess": "Persona saved.",
+      "saveError": "Failed to save persona.",
+      "notSeeded": "No persona configured yet. Seed defaults to get started, then edit them.",
+      "seedDefaults": "Seed default persona",
+      "seedSuccess": "Defaults seeded. Tune them below.",
+      "seedError": "Failed to seed defaults."
+    },
     "rssFeeds": {
       "title": "RSS Feeds",
       "subtitle": "Sources fetched daily at 8:00 AM IST.",

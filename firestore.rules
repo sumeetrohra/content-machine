@@ -26,5 +26,19 @@ service cloud.firestore {
       allow create: if willOwn();
       allow update: if isOwner() && ownerUnchanged();
     }
+
+    match /appConfig/{accountId} {
+      allow read: if isSignedIn() && request.auth.uid == accountId;
+      allow create, update: if isSignedIn()
+        && request.auth.uid == accountId
+        && request.resource.data.accountId == accountId;
+      allow delete: if false;
+    }
+
+    match /drafts/{id} {
+      allow read, delete: if isOwner();
+      allow create: if willOwn();
+      allow update: if isOwner() && ownerUnchanged();
+    }
   }
 }

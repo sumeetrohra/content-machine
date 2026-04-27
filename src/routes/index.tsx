@@ -28,6 +28,13 @@ export const router = createBrowserRouter([
           return { Component: RssFeedsPage };
         },
       },
+      {
+        path: 'admin/persona',
+        lazy: async () => {
+          const { PersonaPage } = await import('@/pages/admin/PersonaPage');
+          return { Component: PersonaPage };
+        },
+      },
     ],
   },
 ]);

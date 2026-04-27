@@ -1,16 +1,21 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import {
   ArrowLeft,
   Check,
-  X,
-  RotateCcw,
-  Trash2,
+  Copy,
   ExternalLink,
   Loader2,
   Pencil,
+  RefreshCw,
+  RotateCcw,
+  Sparkles,
+  Trash2,
+  Wand2,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +28,12 @@ import {
   useUpdateContentIdea,
   useDeleteContentIdea,
 } from '@/hooks/use-content-ideas';
+import { useScoreArticle, useSuggestFormats } from '@/hooks/use-pipeline';
+import {
+  useDeleteDraft,
+  useDrafts,
+  useGenerateDraft,
+} from '@/hooks/use-drafts';
 import { formatDate, formatRelative } from '@/shared/utils/datetime-utils';
 import type { EContentStatus } from '@/shared/types/content-idea.types';
 
@@ -50,6 +61,11 @@ export const IdeaDetailPage = () => {
   const updateStatus = useUpdateIdeaStatus();
   const updateIdea = useUpdateContentIdea();
   const deleteIdea = useDeleteContentIdea();
+  const scoreArticle = useScoreArticle();
+  const suggestFormats = useSuggestFormats();
+  const generateDraft = useGenerateDraft();
+  const deleteDraft = useDeleteDraft();
+  const { data: drafts = [] } = useDrafts(id ?? '');
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
@@ -100,9 +116,46 @@ export const IdeaDetailPage = () => {
     setIsEditingTitle(false);
   };
 
+  const handleRescore = async () => {
+    try {
+      const res = await scoreArticle.mutateAsync(idea.id);
+      toast.success(t('kanban.detail.scoreSuccess', { score: res.score }));
+    } catch {
+      toast.error(t('kanban.detail.scoreError'));
+    }
+  };
+
+  const handleSuggestFormats = async () => {
+    try {
+      const res = await suggestFormats.mutateAsync(idea.id);
+      toast.success(
+        t('kanban.detail.formatsSuccess', { count: res.formats.length }),
+      );
+    } catch {
+      toast.error(t('kanban.detail.formatsError'));
+    }
+  };
+
+  const handleGenerateDraft = async (platform: string, format: string) => {
+    try {
+      await generateDraft.mutateAsync({
+        articleId: idea.id,
+        platform,
+        format,
+      });
+      toast.success(t('kanban.detail.draftSuccess'));
+    } catch {
+      toast.error(t('kanban.detail.draftError'));
+    }
+  };
+
+  const handleCopyDraft = async (body: string) => {
+    await navigator.clipboard.writeText(body);
+    toast.success(t('kanban.detail.copied'));
+  };
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      {/* Back + actions */}
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
           <ArrowLeft className="mr-1.5 size-4" />
@@ -157,7 +210,6 @@ export const IdeaDetailPage = () => {
         </div>
       </div>
 
-      {/* Title + status */}
       <div className="space-y-2">
         <div className="flex items-start gap-2">
           {isEditingTitle ? (
@@ -203,7 +255,6 @@ export const IdeaDetailPage = () => {
         </div>
       </div>
 
-      {/* Metadata */}
       <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
         <span>
           {t('kanban.detail.addedAt')}: {formatDate(idea.createdAt)} (
@@ -232,10 +283,151 @@ export const IdeaDetailPage = () => {
         )}
       </div>
 
+      <div className="flex flex-wrap gap-2 rounded-lg border bg-muted/20 p-3">
+        {idea.viralityScore !== null && (
+          <Badge variant="secondary" className="gap-1">
+            {t('kanban.detail.viralityScore')}: {idea.viralityScore}/10
+          </Badge>
+        )}
+        {idea.pipelineStatus && (
+          <Badge variant="outline" className="text-xs">
+            {idea.pipelineStatus}
+          </Badge>
+        )}
+        {idea.dedupSimilarity !== null && idea.dedupAgainstId && (
+          <Badge variant="outline" className="text-xs">
+            {t('kanban.detail.dupOf', {
+              sim: (idea.dedupSimilarity * 100).toFixed(0),
+            })}
+          </Badge>
+        )}
+        {idea.pipelineError && (
+          <Badge variant="destructive" className="text-xs">
+            {idea.pipelineError}
+          </Badge>
+        )}
+        <div className="ml-auto flex gap-2">
+          <Button
+            size="xs"
+            variant="outline"
+            onClick={handleRescore}
+            disabled={scoreArticle.isPending}
+          >
+            {scoreArticle.isPending ? (
+              <Loader2 className="mr-1 size-3 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-1 size-3" />
+            )}
+            {t('kanban.detail.rescore')}
+          </Button>
+          <Button
+            size="xs"
+            variant="outline"
+            onClick={handleSuggestFormats}
+            disabled={suggestFormats.isPending}
+          >
+            {suggestFormats.isPending ? (
+              <Loader2 className="mr-1 size-3 animate-spin" />
+            ) : (
+              <Sparkles className="mr-1 size-3" />
+            )}
+            {t('kanban.detail.suggestFormats')}
+          </Button>
+        </div>
+      </div>
+
+      {idea.viralityReason && (
+        <p className="rounded-lg bg-muted/30 p-3 text-sm italic text-muted-foreground">
+          {idea.viralityReason}
+        </p>
+      )}
+
       <Separator />
 
-      {/* Content */}
+      {idea.suggestedFormats && idea.suggestedFormats.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">
+            {t('kanban.detail.suggestedFormats')}
+          </h2>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {idea.suggestedFormats.map((sf, idx) => (
+              <div
+                key={`${sf.platform}-${sf.format}-${idx}`}
+                className="flex flex-col gap-2 rounded-lg border p-3"
+              >
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">{sf.platform}</Badge>
+                  <Badge variant="outline">{sf.format}</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">{sf.why}</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleGenerateDraft(sf.platform, sf.format)}
+                  disabled={generateDraft.isPending}
+                >
+                  {generateDraft.isPending ? (
+                    <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                  ) : (
+                    <Wand2 className="mr-1.5 size-3.5" />
+                  )}
+                  {t('kanban.detail.generateDraft')}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {drafts.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">{t('kanban.detail.drafts')}</h2>
+          <div className="space-y-3">
+            {drafts.map(draft => (
+              <div key={draft.id} className="rounded-lg border p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">{draft.platform}</Badge>
+                    <Badge variant="outline">{draft.format}</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {formatRelative(draft.createdAt)}
+                    </span>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={() => handleCopyDraft(draft.body)}
+                      title={t('kanban.detail.copy')}
+                    >
+                      <Copy className="size-3.5" />
+                    </Button>
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={() => deleteDraft.mutate(draft.id)}
+                      className="text-destructive hover:text-destructive"
+                      title={t('kanban.detail.deleteDraft')}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                </div>
+                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                  {draft.body}
+                </pre>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <Separator />
+
       <div>
+        <h2 className="mb-3 text-lg font-semibold">
+          {t('kanban.detail.articleContent')}
+        </h2>
         {idea.contentFormat === 'markdown' ? (
           <div className="prose prose-sm dark:prose-invert max-w-none">
             <ReactMarkdown>{idea.content}</ReactMarkdown>

@@ -1,5 +1,4 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions/v2';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { db } from './lib/admin';
@@ -86,20 +85,9 @@ export const seedDefaultFeeds = onCall<void>(
   },
 );
 
-export const scheduledFetchRss = onSchedule(
-  {
-    schedule: 'every day 08:00',
-    timeZone: 'Asia/Kolkata',
-    region: 'us-central1',
-    timeoutSeconds: 540,
-  },
-  async () => {
-    const inserted = await runRssFetch({});
-    logger.info(`scheduledFetchRss inserted ${inserted} ideas`);
-  },
-);
-
-async function runRssFetch(opts: { accountId?: string }): Promise<number> {
+export async function runRssFetch(opts: {
+  accountId?: string;
+}): Promise<number> {
   let feedsQuery = db
     .collection('rssFeeds')
     .where('isActive', '==', true) as FirebaseFirestore.Query;
@@ -143,9 +131,16 @@ async function processFeed(
   const xml = await res.text();
   const items = parseFeed(xml);
 
+  const cutoffMs = Date.now() - 24 * 60 * 60 * 1000;
+
   let inserted = 0;
   for (const item of items) {
     if (!item.link) continue;
+
+    if (item.pubDate) {
+      const publishedMs = new Date(item.pubDate).getTime();
+      if (Number.isFinite(publishedMs) && publishedMs < cutoffMs) continue;
+    }
 
     const dupe = await db
       .collection('contentIdeas')
@@ -177,6 +172,13 @@ async function processFeed(
         ? Timestamp.fromDate(new Date(item.pubDate))
         : null,
       embedding: embedding ? FieldValue.vector(embedding) : null,
+      pipelineStatus: embedding ? 'embedded' : 'failed',
+      pipelineError: embedding ? null : 'embedding-failed',
+      viralityScore: null,
+      viralityReason: null,
+      dedupSimilarity: null,
+      dedupAgainstId: null,
+      suggestedFormats: null,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });

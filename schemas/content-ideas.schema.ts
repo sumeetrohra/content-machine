@@ -19,5 +19,13 @@ export default defineCollection({
     author: z.string().nullable(),
     publishedAt: ts().nullable(),
     embedding: vec(768).nullable(),
+    pipelineStatus: z
+      .enum(['embedded', 'deduped', 'scored', 'failed'])
+      .nullable(),
+    pipelineError: z.string().nullable(),
+    viralityScore: z.number().nullable(),
+    viralityReason: z.string().nullable(),
+    dedupSimilarity: z.number().nullable(),
+    dedupAgainstId: z.string().nullable(),
   }),
 });

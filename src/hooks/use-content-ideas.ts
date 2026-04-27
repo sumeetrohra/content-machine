@@ -52,6 +52,16 @@ function ideaFromDoc(id: string, data: DocumentData): TContentIdea {
     publishedAt: tsToIso(data.publishedAt),
     createdAt: tsToIso(data.createdAt) ?? '',
     updatedAt: tsToIso(data.updatedAt) ?? '',
+    pipelineStatus:
+      (data.pipelineStatus as TContentIdea['pipelineStatus']) ?? null,
+    pipelineError: (data.pipelineError as string | null | undefined) ?? null,
+    viralityScore: (data.viralityScore as number | null | undefined) ?? null,
+    viralityReason: (data.viralityReason as string | null | undefined) ?? null,
+    dedupSimilarity:
+      (data.dedupSimilarity as number | null | undefined) ?? null,
+    dedupAgainstId: (data.dedupAgainstId as string | null | undefined) ?? null,
+    suggestedFormats:
+      (data.suggestedFormats as TContentIdea['suggestedFormats']) ?? null,
   };
 }
 
@@ -70,6 +80,15 @@ function ideaFromCallable(raw: Record<string, unknown>): TContentIdea {
     publishedAt: (raw.publishedAt as string | null | undefined) ?? null,
     createdAt: (raw.createdAt as string | undefined) ?? '',
     updatedAt: (raw.updatedAt as string | undefined) ?? '',
+    pipelineStatus:
+      (raw.pipelineStatus as TContentIdea['pipelineStatus']) ?? null,
+    pipelineError: (raw.pipelineError as string | null | undefined) ?? null,
+    viralityScore: (raw.viralityScore as number | null | undefined) ?? null,
+    viralityReason: (raw.viralityReason as string | null | undefined) ?? null,
+    dedupSimilarity: (raw.dedupSimilarity as number | null | undefined) ?? null,
+    dedupAgainstId: (raw.dedupAgainstId as string | null | undefined) ?? null,
+    suggestedFormats:
+      (raw.suggestedFormats as TContentIdea['suggestedFormats']) ?? null,
   };
 }
 
