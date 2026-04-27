@@ -1,73 +1,47 @@
-# React + TypeScript + Vite
+# content-machine
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A content creation tool that works with RSS feeds to help users generate and publish content on social media.
 
-Currently, two official plugins are available:
+Subscribe to RSS sources, pull in articles you care about, and turn them into ready-to-post content for your social channels — all from one place.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- Connect and manage RSS feeds as content sources
+- Generate social-media-ready posts from feed items
+- Streamlined workflow for drafting, editing, and publishing
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the ESLint configuration
+- React 19 + TypeScript + Vite
+- Tailwind CSS v4 + shadcn/ui
+- Zustand for state management
+- React Hook Form + Zod for forms and validation
+- React Router DOM v7
+- i18next for internationalization
+- Sentry for error tracking
+- Vitest + React Testing Library (unit) and Playwright (E2E)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Getting Started
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Install dependencies:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+```bash
+yarn install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Start the dev server:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x';
-import reactDom from 'eslint-plugin-react-dom';
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+```bash
+yarn dev
 ```
+
+## Scripts
+
+- `yarn dev` — Start the dev server
+- `yarn build` — Production build
+- `yarn lint` — Run ESLint
+- `yarn format` — Format with Prettier
+- `yarn typecheck` — TypeScript type check
+- `yarn test` — Run Vitest unit tests
+- `yarn e2e` — Run Playwright E2E tests
+- `yarn generate:api` — Generate API hooks from schema
