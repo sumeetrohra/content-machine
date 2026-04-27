@@ -61,7 +61,12 @@ export const searchContentIdeas = onCall<TSearchInput>(
       snap = await q.orderBy('createdAt', 'desc').limit(cappedLimit).get();
     }
 
-    const results = snap.docs.map(d => serialize({ id: d.id, ...d.data() }));
+    const results = snap.docs.map(
+      d =>
+        serialize({ id: d.id, ...d.data() }) as Record<string, unknown> & {
+          id: string;
+        },
+    );
     return { results };
   },
 );
