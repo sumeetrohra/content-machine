@@ -15,7 +15,7 @@ type TKanbanActions = {
 
 type TKanbanStore = TKanbanState & TKanbanActions;
 
-const useKanbanStoreBase = create<TKanbanStore>(set => ({
+export const useKanbanStoreBase = create<TKanbanStore>(set => ({
   timeFilter: 'all',
   searchQuery: '',
   isEmbeddingSearch: false,

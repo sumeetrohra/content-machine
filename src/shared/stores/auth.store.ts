@@ -13,7 +13,7 @@ type TAuthActions = {
 
 type TAuthStore = TAuthState & TAuthActions;
 
-const useAuthStoreBase = create<TAuthStore>(set => ({
+export const useAuthStoreBase = create<TAuthStore>(set => ({
   user: null,
   isInitializing: true,
 
