@@ -9,6 +9,7 @@ import {
   Copy,
   ExternalLink,
   Loader2,
+  MessageSquare,
   Pencil,
   RefreshCw,
   RotateCcw,
@@ -35,7 +36,8 @@ import {
   useGenerateDraft,
 } from '@/hooks/use-drafts';
 import { formatDate, formatRelative } from '@/shared/utils/datetime-utils';
-import type { EContentStatus } from '@/shared/types/content-idea.types';
+import type { EContentStatus, TDraft } from '@/shared/types/content-idea.types';
+import { DraftChatSheet } from './components/DraftChatSheet';
 
 function stripScriptTags(html: string): string {
   return html
@@ -69,6 +71,7 @@ export const IdeaDetailPage = () => {
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
+  const [chatDraftItem, setChatDraftItem] = useState<TDraft | null>(null);
 
   if (isLoading) {
     return (
@@ -395,6 +398,14 @@ export const IdeaDetailPage = () => {
                   </div>
                   <div className="flex gap-1">
                     <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setChatDraftItem(draft)}
+                    >
+                      <MessageSquare className="mr-1.5 size-3.5" />
+                      {t('kanban.detail.openChat')}
+                    </Button>
+                    <Button
                       size="icon-sm"
                       variant="ghost"
                       onClick={() => handleCopyDraft(draft.body)}
@@ -413,7 +424,7 @@ export const IdeaDetailPage = () => {
                     </Button>
                   </div>
                 </div>
-                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                <pre className="line-clamp-6 whitespace-pre-wrap font-sans text-sm leading-relaxed">
                   {draft.body}
                 </pre>
               </div>
@@ -421,6 +432,11 @@ export const IdeaDetailPage = () => {
           </div>
         </div>
       )}
+
+      <DraftChatSheet
+        draft={chatDraftItem}
+        onOpenChange={open => !open && setChatDraftItem(null)}
+      />
 
       <Separator />
 

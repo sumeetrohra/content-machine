@@ -40,5 +40,19 @@ service cloud.firestore {
       allow create: if willOwn();
       allow update: if isOwner() && ownerUnchanged();
     }
+
+    match /chats/{chatId} {
+      allow read, delete: if isOwner();
+      allow create: if willOwn();
+      allow update: if isOwner() && ownerUnchanged();
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn()
+          && request.auth.uid == get(/databases/$(database)/documents/chats/$(chatId)).data.accountId;
+        // Writes happen via the Cloud Function (admin SDK bypasses rules);
+        // keep client writes closed to prevent tampering.
+        allow write: if false;
+      }
+    }
   }
 }

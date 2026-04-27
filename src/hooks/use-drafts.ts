@@ -30,6 +30,7 @@ function draftFromDoc(id: string, data: DocumentData): TDraft {
     format: data.format as string,
     body: data.body as string,
     model: data.model as string,
+    chatId: (data.chatId as string | undefined) ?? '',
     createdAt: tsToIso(data.createdAt) ?? '',
     updatedAt: tsToIso(data.updatedAt) ?? '',
   };
@@ -61,11 +62,11 @@ export const useGenerateDraft = () => {
       articleId: string;
       platform: string;
       format: string;
-    }): Promise<{ draftId: string; body: string }> => {
-      const fn = httpsCallable<typeof input, { draftId: string; body: string }>(
-        functions,
-        'generateDraft',
-      );
+    }): Promise<{ draftId: string; chatId: string; body: string }> => {
+      const fn = httpsCallable<
+        typeof input,
+        { draftId: string; chatId: string; body: string }
+      >(functions, 'generateDraft');
       const res = await fn(input);
       return res.data;
     },

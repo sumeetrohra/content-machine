@@ -112,7 +112,13 @@
       "copied": "Copied to clipboard.",
       "deleteDraft": "Delete draft",
       "articleContent": "Article content",
-      "dupOf": "Duplicate ({{sim}}% similar)"
+      "dupOf": "Duplicate ({{sim}}% similar)",
+      "openChat": "Open chat",
+      "chatPlaceholder": "Ask for a revision — e.g. make it shorter, lead with the contrarian take",
+      "send": "Send",
+      "sending": "Drafting…",
+      "chatError": "Failed to send message.",
+      "chatHistoryEmpty": "No messages yet."
     }
   },
   "admin": {

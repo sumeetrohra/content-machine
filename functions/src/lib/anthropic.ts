@@ -164,27 +164,46 @@ Return JSON only. The "platform" must be one of: youtube, linkedin, twitter. The
   return parsed.formats;
 }
 
-export async function generatePostDraft(args: {
+export type TChatMessageInput = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
+export function buildInitialDraftPrompt(args: {
+  articleTitle: string | null;
+  articleContent: string;
+  articleSource: string | null;
+}): string {
+  const article = formatArticleForPrompt({
+    title: args.articleTitle,
+    content: args.articleContent,
+    source: args.articleSource,
+  });
+  return `${article}\n\nDraft a post based on this article. Use the platform and format from the system prompt. Return only the post body — no preamble, no explanations, no markdown fences.`;
+}
+
+export async function runDraftChatTurn(args: {
   persona: string;
   platform: string;
   format: string;
   formatDescription: string;
-  articleTitle: string | null;
-  articleContent: string;
-  articleSource: string | null;
+  history: TChatMessageInput[];
 }): Promise<string> {
+  if (args.history.length === 0) {
+    throw new Error('runDraftChatTurn requires at least one message');
+  }
   const client = getAnthropic();
   const systemText = `${args.persona}
 
 ---
 
-You draft a single post for the author. Match the author's practitioner voice: opinionated, sharp, technical-but-accessible, no marketing fluff, no excessive emoji. Strong hook in the first line.
+You draft posts for the author. Match the author's practitioner voice: opinionated, sharp, technical-but-accessible, no marketing fluff, no excessive emoji. Strong hook in the first line.
 
 Platform: ${args.platform}
 Format: ${args.format}
 Format guidelines: ${args.formatDescription}
 
-Return only the post body — no preamble, no explanations, no markdown fences. The article below is the seed for the post; the post should reflect the author's view, not summarize the article.`;
+The first user message contains the source article and the initial request. Subsequent user messages are revision instructions from the author. Each time, return only the updated post body — no preamble, no explanations, no markdown fences. Treat each request as a full rewrite of the post unless the author explicitly asks for a partial edit.`;
 
   const systemBlocks = [
     {
@@ -194,22 +213,17 @@ Return only the post body — no preamble, no explanations, no markdown fences. 
     },
   ];
 
-  const userText = formatArticleForPrompt({
-    title: args.articleTitle,
-    content: args.articleContent,
-    source: args.articleSource,
-  });
-
   const response = await client.messages.create({
     model: DRAFTING_MODEL,
     max_tokens: 2048,
     system: systemBlocks,
-    messages: [{ role: 'user', content: userText }],
+    messages: args.history.map(m => ({ role: m.role, content: m.content })),
   });
 
-  logger.info('generatePostDraft usage', {
+  logger.info('runDraftChatTurn usage', {
     platform: args.platform,
     format: args.format,
+    turns: args.history.length,
     input: response.usage.input_tokens,
     output: response.usage.output_tokens,
     cacheRead: response.usage.cache_read_input_tokens,

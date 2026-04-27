@@ -34,6 +34,12 @@ export type TContentIdea = {
   suggestedFormats: TSuggestedFormat[] | null;
 };
 
+export type TChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: string;
+};
+
 export type TDraft = {
   id: string;
   accountId: string;
@@ -41,6 +47,19 @@ export type TDraft = {
   platform: EPlatform;
   format: string;
   body: string;
+  model: string;
+  chatId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TChat = {
+  id: string;
+  accountId: string;
+  articleId: string;
+  draftId: string;
+  platform: EPlatform;
+  format: string;
   model: string;
   createdAt: string;
   updatedAt: string;
