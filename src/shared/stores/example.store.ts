@@ -14,7 +14,7 @@ type TExampleActions = {
 
 type TExampleStore = TExampleState & TExampleActions;
 
-const useExampleStoreBase = create<TExampleStore>(set => ({
+export const useExampleStoreBase = create<TExampleStore>(set => ({
   // State
   count: 0,
   name: '',

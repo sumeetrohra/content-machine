@@ -233,6 +233,7 @@ export default tseslint.config(
     rules: {
       'no-restricted-syntax': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
+      'no-console': 'off',
     },
   },
 );
