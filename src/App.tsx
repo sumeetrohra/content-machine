@@ -12,14 +12,7 @@ export const App = () => {
       <AuthProvider>
         <AuthGate>
           <QueryProvider>
-            <RouterProvider
-              router={router}
-              fallbackElement={
-                <div className="container mx-auto py-6 text-sm text-muted-foreground">
-                  Loading...
-                </div>
-              }
-            />
+            <RouterProvider router={router} />
             <Toaster />
           </QueryProvider>
         </AuthGate>
