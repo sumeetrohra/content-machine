@@ -94,5 +94,42 @@
       "addedAt": "Added",
       "notFound": "Idea not found."
     }
+  },
+  "admin": {
+    "rssFeeds": {
+      "title": "RSS Feeds",
+      "subtitle": "Sources fetched daily at 8:00 AM IST.",
+      "manage": "Manage RSS Feeds",
+      "seedDefaults": "Seed default feeds",
+      "seedSuccess": "{{inserted}} added, {{skipped}} skipped.",
+      "seedError": "Failed to seed default feeds.",
+      "fetchNow": "Fetch now",
+      "fetchSuccess": "Fetch triggered.",
+      "fetchError": "Failed to trigger fetch.",
+      "addFeed": "Add feed",
+      "edit": "Edit",
+      "editFeed": "Edit feed",
+      "delete": "Delete",
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "active": "Active",
+      "name": "Name",
+      "url": "Feed URL",
+      "lastFetched": "Last fetched",
+      "never": "Never",
+      "actions": "Actions",
+      "namePlaceholder": "Hacker News",
+      "urlPlaceholder": "https://news.ycombinator.com/rss",
+      "invalidUrl": "Please enter a valid URL.",
+      "nameRequired": "Name is required.",
+      "addError": "Failed to add feed. URL may already be added.",
+      "updateError": "Failed to update feed.",
+      "deleteError": "Failed to delete feed.",
+      "adding": "Adding…",
+      "empty": "No feeds yet. Seed defaults or add one below.",
+      "confirmDeleteTitle": "Delete this feed?",
+      "confirmDeleteBody": "This will stop fetching items from this source. Existing articles are kept."
+    }
   }
 }

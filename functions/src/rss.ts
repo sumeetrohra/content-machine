@@ -4,6 +4,7 @@ import { logger } from 'firebase-functions/v2';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { db } from './lib/admin';
 import { embed } from './lib/vertex';
+import { CURATED_FEEDS } from './data/curated-feeds';
 
 type TRssItem = {
   title: string | null;
@@ -15,6 +16,8 @@ type TRssItem = {
 
 type TFetchRssInput = { accountId?: string };
 type TFetchRssOutput = { inserted: number };
+
+type TSeedDefaultFeedsOutput = { inserted: number; skipped: number };
 
 const FUNCTION_OPTS = {
   region: 'us-central1',
@@ -40,8 +43,56 @@ export const fetchRss = onCall<TFetchRssInput>(
   },
 );
 
+export const seedDefaultFeeds = onCall<void>(
+  FUNCTION_OPTS,
+  async (request): Promise<TSeedDefaultFeedsOutput> => {
+    if (!request.auth) {
+      throw new HttpsError('unauthenticated', 'Sign-in required.');
+    }
+    const accountId = request.auth.uid;
+
+    const existingSnap = await db
+      .collection('rssFeeds')
+      .where('accountId', '==', accountId)
+      .get();
+    const existingUrls = new Set(
+      existingSnap.docs.map(d => (d.data() as { url: string }).url),
+    );
+
+    const toInsert = CURATED_FEEDS.filter(f => !existingUrls.has(f.url));
+    if (toInsert.length === 0) {
+      return { inserted: 0, skipped: CURATED_FEEDS.length };
+    }
+
+    const batch = db.batch();
+    for (const feed of toInsert) {
+      const ref = db.collection('rssFeeds').doc();
+      batch.set(ref, {
+        accountId,
+        name: feed.name,
+        url: feed.url,
+        isActive: true,
+        lastFetchedAt: null,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
+    await batch.commit();
+
+    return {
+      inserted: toInsert.length,
+      skipped: CURATED_FEEDS.length - toInsert.length,
+    };
+  },
+);
+
 export const scheduledFetchRss = onSchedule(
-  { schedule: 'every day 08:00', region: 'us-central1', timeoutSeconds: 540 },
+  {
+    schedule: 'every day 08:00',
+    timeZone: 'Asia/Kolkata',
+    region: 'us-central1',
+    timeoutSeconds: 540,
+  },
   async () => {
     const inserted = await runRssFetch({});
     logger.info(`scheduledFetchRss inserted ${inserted} ideas`);

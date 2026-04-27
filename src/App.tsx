@@ -3,6 +3,7 @@ import { QueryProvider } from '@/providers/query-provider';
 import { ThemeProvider } from '@/providers/theme-provider';
 import { AuthProvider } from '@/providers/auth-provider';
 import { AuthGate } from '@/components/auth-gate';
+import { Toaster } from '@/components/ui/sonner';
 import { router } from '@/routes';
 
 export const App = () => {
@@ -19,6 +20,7 @@ export const App = () => {
                 </div>
               }
             />
+            <Toaster />
           </QueryProvider>
         </AuthGate>
       </AuthProvider>

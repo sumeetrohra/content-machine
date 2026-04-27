@@ -1,3 +1,3 @@
 export { generateEmbedding } from './embeddings';
 export { searchContentIdeas } from './search';
-export { fetchRss, scheduledFetchRss } from './rss';
+export { fetchRss, scheduledFetchRss, seedDefaultFeeds } from './rss';

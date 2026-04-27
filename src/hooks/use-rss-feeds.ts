@@ -7,6 +7,7 @@ import {
   getDocs,
   addDoc,
   deleteDoc,
+  updateDoc,
   doc,
   serverTimestamp,
   Timestamp,
@@ -18,6 +19,7 @@ import { useAuthUser } from '@/shared/stores/auth.store';
 import type {
   TRssFeed,
   TCreateFeedInput,
+  TUpdateFeedInput,
 } from '@/shared/types/content-idea.types';
 
 const FEEDS_KEY = 'rss-feeds';
@@ -83,12 +85,52 @@ export const useCreateRssFeed = () => {
   });
 };
 
+export const useUpdateRssFeed = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      patch,
+    }: {
+      id: string;
+      patch: TUpdateFeedInput;
+    }): Promise<void> => {
+      await updateDoc(doc(db, 'rssFeeds', id), {
+        ...patch,
+        updatedAt: serverTimestamp(),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [FEEDS_KEY] });
+    },
+  });
+};
+
 export const useDeleteRssFeed = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
       await deleteDoc(doc(db, 'rssFeeds', id));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [FEEDS_KEY] });
+    },
+  });
+};
+
+export const useSeedDefaultFeeds = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (): Promise<{ inserted: number; skipped: number }> => {
+      const seed = httpsCallable<
+        undefined,
+        { inserted: number; skipped: number }
+      >(functions, 'seedDefaultFeeds');
+      const res = await seed();
+      return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [FEEDS_KEY] });

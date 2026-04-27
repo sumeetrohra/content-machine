@@ -21,6 +21,13 @@ export const router = createBrowserRouter([
           return { Component: IdeaDetailPage };
         },
       },
+      {
+        path: 'admin/rss-feeds',
+        lazy: async () => {
+          const { RssFeedsPage } = await import('@/pages/admin/RssFeedsPage');
+          return { Component: RssFeedsPage };
+        },
+      },
     ],
   },
 ]);

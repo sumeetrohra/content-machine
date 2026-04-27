@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { Plus, Rss } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { KanbanBoard } from './components/KanbanBoard';
 import { KanbanFilters } from './components/KanbanFilters';
 import { AddIdeaDialog } from './components/AddIdeaDialog';
-import { RssFeedsSheet } from './components/RssFeedsSheet';
 import { useContentIdeas } from '@/hooks/use-content-ideas';
 import {
   useKanbanTimeFilter,
@@ -17,7 +17,6 @@ import {
 export const KanbanPage = () => {
   const { t } = useTranslation();
   const [addIdeaOpen, setAddIdeaOpen] = useState(false);
-  const [rssFeedsOpen, setRssFeedsOpen] = useState(false);
 
   const timeFilter = useKanbanTimeFilter();
   const searchQuery = useKanbanSearchQuery();
@@ -40,14 +39,13 @@ export const KanbanPage = () => {
           {t('kanban.title')}
         </h1>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setRssFeedsOpen(true)}
+          <Link
+            to="/admin/rss-feeds"
+            className={buttonVariants({ variant: 'outline', size: 'sm' })}
           >
             <Rss className="mr-1.5 size-4" />
-            {t('kanban.rssFeeds.title')}
-          </Button>
+            {t('admin.rssFeeds.manage')}
+          </Link>
           <Button size="sm" onClick={() => setAddIdeaOpen(true)}>
             <Plus className="mr-1.5 size-4" />
             {t('kanban.addIdea.button')}
@@ -80,7 +78,6 @@ export const KanbanPage = () => {
       )}
 
       <AddIdeaDialog open={addIdeaOpen} onOpenChange={setAddIdeaOpen} />
-      <RssFeedsSheet open={rssFeedsOpen} onOpenChange={setRssFeedsOpen} />
     </div>
   );
 };

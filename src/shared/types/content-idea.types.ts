@@ -40,3 +40,7 @@ export type TCreateFeedInput = {
   name: string;
   url: string;
 };
+
+export type TUpdateFeedInput = Partial<
+  Pick<TRssFeed, 'name' | 'url' | 'isActive'>
+>;
