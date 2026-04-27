@@ -52,13 +52,20 @@ export default tseslint.config(
           paths: [
             {
               name: 'react',
-              importNames: ['createContext', 'useContext', 'useMemo', 'useCallback', 'memo'],
+              importNames: [
+                'createContext',
+                'useContext',
+                'useMemo',
+                'useCallback',
+                'memo',
+              ],
               message:
                 'createContext/useContext are banned - use Zustand. React.memo/useMemo/useCallback are banned - prefer component splitting.',
             },
             {
               name: 'react-router',
-              message: 'Import from "react-router-dom" instead of "react-router".',
+              message:
+                'Import from "react-router-dom" instead of "react-router".',
             },
             {
               name: '@sentry/react',
@@ -150,13 +157,20 @@ export default tseslint.config(
           paths: [
             {
               name: 'react',
-              importNames: ['createContext', 'useContext', 'useMemo', 'useCallback', 'memo'],
+              importNames: [
+                'createContext',
+                'useContext',
+                'useMemo',
+                'useCallback',
+                'memo',
+              ],
               message:
                 'createContext/useContext are banned - use Zustand. React.memo/useMemo/useCallback are banned - prefer component splitting.',
             },
             {
               name: 'react-router',
-              message: 'Import from "react-router-dom" instead of "react-router".',
+              message:
+                'Import from "react-router-dom" instead of "react-router".',
             },
             {
               name: 'dayjs',
@@ -179,13 +193,20 @@ export default tseslint.config(
           paths: [
             {
               name: 'react',
-              importNames: ['createContext', 'useContext', 'useMemo', 'useCallback', 'memo'],
+              importNames: [
+                'createContext',
+                'useContext',
+                'useMemo',
+                'useCallback',
+                'memo',
+              ],
               message:
                 'createContext/useContext are banned - use Zustand. React.memo/useMemo/useCallback are banned - prefer component splitting.',
             },
             {
               name: 'react-router',
-              message: 'Import from "react-router-dom" instead of "react-router".',
+              message:
+                'Import from "react-router-dom" instead of "react-router".',
             },
             {
               name: '@sentry/react',
